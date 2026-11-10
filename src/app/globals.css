@@ -1,0 +1,238 @@
+@import "tailwindcss";
+
+/* ============================================================
+   FuJue Harness — token giao diện
+   Nền sáng, một màu nhấn duy nhất (#3d5cf5, cùng họ với #4d6bfe của
+   app desktop nhưng đủ tương phản trên nền trắng). Đổi thương hiệu:
+   sửa --primary ở khối :root bên dưới.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  --primary: #3d5cf5;
+  --primary-hover: #2f4ce0;
+  --primary-foreground: #ffffff;
+  --primary-light: rgb(61 92 245 / 0.1);
+  --accent-to: #7c3aed;
+
+  --background: #f4f5f8;
+  --surface: #ffffff;
+  --surface-hover: #f8f9fb;
+  --surface-overlay: #ffffff;
+  --item-hover: #eef0f4;
+  --foreground: #10131a;
+  --muted: #5f6675;
+
+  --border: #e4e7ee;
+  --border-strong: #d3d8e2;
+  --border-focus: rgb(61 92 245 / 0.55);
+  --ring-focus: rgb(61 92 245 / 0.16);
+  --tab-rail: rgb(16 19 26 / 0.08);
+  --tab-selected: rgb(16 19 26 / 0.06);
+
+  --secondary: #ebeef4;
+  --secondary-hover: #e0e4ec;
+  --button-hover-page: #e9ecf2;
+  --button-hover-surface: #f1f3f7;
+  --button-hover: var(--button-hover-page);
+
+  --elevation-popover: 0 10px 15px -3px rgb(16 24 40 / 0.08), 0 4px 6px -4px rgb(16 24 40 / 0.06);
+  --elevation-modal: 0 20px 25px -5px rgb(16 24 40 / 0.12), 0 8px 10px -6px rgb(16 24 40 / 0.08);
+
+  --chart-fill: color-mix(in srgb, var(--primary) 82%, transparent);
+
+  --danger: #c70036;
+  --danger-bg: rgb(255 32 86 / 0.09);
+  --danger-bg-hover: rgb(255 32 86 / 0.14);
+
+  --error: #fb2c36;
+  --error-ring: rgb(251 44 54 / 0.1);
+  --error-text: #d1000b;
+  --error-bg: #fef2f2;
+  --error-border: #ffc9c9;
+  --error-strong: #b3000a;
+
+  --success-bg: #e9faf3;
+  --success: #007a55;
+  --warning-bg: #fdf6e7;
+  --warning: #a35a00;
+  --neutral-bg: #eef0f4;
+  --neutral: #4b5262;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-light: var(--primary-light);
+  --color-accent-to: var(--accent-to);
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-item-hover: var(--item-hover);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-tab-rail: var(--tab-rail);
+  --color-tab-selected: var(--tab-selected);
+  --color-chart-fill: var(--chart-fill);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-bg-hover: var(--danger-bg-hover);
+  --color-neutral: var(--neutral);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --color-error-border: var(--error-border);
+  --color-error-text: var(--error-text);
+  --color-error-strong: var(--error-strong);
+
+  --color-focus: var(--border-focus);
+  --color-ring-focus: var(--ring-focus);
+
+  --shadow-popover: var(--elevation-popover);
+  --shadow-modal: var(--elevation-modal);
+}
+
+.bg-surface *,
+.bg-surface-overlay * {
+  --button-hover: var(--button-hover-surface);
+}
+.bg-surface .bg-background *,
+[class~="hover:bg-item-hover"]:hover * {
+  --button-hover: var(--button-hover-page);
+}
+
+/* Thanh cuộn mảnh, tự đổi theo hover — áp cho mọi vùng cuộn. */
+* {
+  --scrollbar-thumb: transparent;
+}
+*:hover {
+  --scrollbar-thumb: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+.is-scrolling {
+  --scrollbar-thumb: color-mix(in srgb, var(--foreground) 28%, transparent);
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--foreground) 34%, transparent);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  *:hover {
+    scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
+  }
+}
+
+.scrollbar-clean {
+  scrollbar-width: none;
+}
+.scrollbar-clean::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::selection {
+  background: rgb(61 92 245 / 0.2);
+}
+
+/* Vệt sáng nền của trang chủ. Không dùng cho màn trong app. */
+.hero-glow {
+  background:
+    radial-gradient(60rem 32rem at 50% -14rem, rgb(61 92 245 / 0.12), transparent 70%),
+    radial-gradient(38rem 24rem at 82% 2rem, rgb(124 58 237 / 0.07), transparent 70%);
+}
+
+.grid-lines {
+  background-image:
+    linear-gradient(to right, rgb(16 19 26 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(16 19 26 / 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(70% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+/* Thẻ terminal giữ nền tối trên giao diện sáng: nội dung đọc như màn hình
+   dòng lệnh thật. Khai báo lại token trong phạm vi thẻ thay vì thêm bảng màu. */
+.terminal-card {
+  --background: #0b0d14;
+  --surface: #0e111a;
+  --foreground: #e9edf5;
+  --muted: #9099ac;
+  --border: rgb(160 180 220 / 0.14);
+  --border-strong: rgb(160 180 220 / 0.22);
+  --primary: #8ba1ff;
+  --success: #14d99b;
+  --success-bg: rgb(0 188 125 / 0.16);
+  --danger: #ff6b84;
+
+  color: var(--foreground);
+  background: var(--surface);
+}
+
+@keyframes fj-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.fj-pulse {
+  animation: fj-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes fj-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fj-rise {
+  animation: fj-rise 0.5s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fj-pulse,
+  .fj-rise {
+    animation: none;
+  }
+}
