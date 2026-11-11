@@ -1,11 +1,23 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChevronDown, LogOut, Settings } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import { ChevronDown, Download, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MobileNav } from "@/components/app/mobile-nav";
 import { cn } from "@/lib/cn";
+
+const TITLES: Record<string, string> = {
+  "/dashboard": "Tổng quan",
+  "/dashboard/keys": "Khoá API",
+  "/dashboard/sessions": "Phiên đăng nhập",
+  "/device": "Kết nối thiết bị",
+  "/admin": "Quản trị",
+  "/admin/users": "Người dùng",
+  "/admin/models": "Model",
+  "/admin/logs": "Nhật ký",
+};
 
 export function Topbar({
   name,
@@ -20,6 +32,7 @@ export function Topbar({
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   async function signOut() {
     await fetch("/api/v1/auth/logout", { method: "POST" });
@@ -34,13 +47,25 @@ export function Topbar({
     .map((part) => part[0]?.toUpperCase())
     .join("");
 
+  const title = TITLES[pathname] ?? "Bảng điều khiển";
+
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl sm:px-6">
-      <div className="lg:hidden">
-        <Logo compact />
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl sm:px-6">
+      <MobileNav isAdmin={isAdmin} />
+      <div className="min-w-0">
+        <p className="hidden text-[11px] text-muted sm:block">Bảng điều khiển</p>
+        <p className="truncate text-sm font-medium">{title}</p>
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <Link
+          href="/downloads"
+          className="hidden h-9 items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 text-xs text-muted transition-colors hover:text-foreground sm:inline-flex"
+        >
+          <Download className="size-3.5" />
+          Tải app
+        </Link>
+
         <Badge tone={plan === "free" ? "neutral" : "brand"}>
           Gói {plan === "free" ? "Miễn phí" : plan === "pro" ? "Pro" : "Đội nhóm"}
         </Badge>
@@ -49,14 +74,14 @@ export function Topbar({
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="flex h-9 items-center gap-2 rounded-lg border border-border-strong px-2 pr-2.5 text-sm transition-colors hover:bg-item-hover"
+            className="flex h-9 items-center gap-2 rounded-lg border border-border-strong bg-surface px-2 pr-2.5 text-sm transition-colors hover:bg-item-hover"
             aria-expanded={open}
             aria-haspopup="menu"
           >
             <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary-light text-[11px] font-medium text-primary">
               {initials || "?"}
             </span>
-            <span className="hidden max-w-40 truncate text-xs text-muted sm:block">{email}</span>
+            <span className="hidden max-w-36 truncate text-xs text-muted sm:block">{email}</span>
             <ChevronDown className="size-3.5 text-muted" />
           </button>
 
@@ -71,7 +96,7 @@ export function Topbar({
               <div
                 role="menu"
                 className={cn(
-                  "absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-border-strong",
+                  "absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border-strong",
                   "bg-surface-overlay shadow-popover",
                 )}
               >
@@ -80,23 +105,23 @@ export function Topbar({
                   <p className="truncate text-xs text-muted">{email}</p>
                 </div>
                 <div className="p-1">
-                  <a
+                  <Link
                     href="/dashboard"
                     className="flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm text-muted hover:bg-item-hover hover:text-foreground"
                     role="menuitem"
                   >
-                    <Settings className="size-4" />
+                    <LayoutDashboard className="size-4" />
                     Bảng điều khiển
-                  </a>
+                  </Link>
                   {isAdmin ? (
-                    <a
+                    <Link
                       href="/admin"
                       className="flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm text-muted hover:bg-item-hover hover:text-foreground"
                       role="menuitem"
                     >
-                      <Settings className="size-4" />
+                      <ShieldCheck className="size-4" />
                       Trang quản trị
-                    </a>
+                    </Link>
                   ) : null}
                   <button
                     type="button"

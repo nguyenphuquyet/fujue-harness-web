@@ -16,16 +16,17 @@
   --primary-light: rgb(61 92 245 / 0.1);
   --accent-to: #7c3aed;
 
-  --background: #f4f5f8;
+  --background: #f5f6fa;
   --surface: #ffffff;
-  --surface-hover: #f8f9fb;
+  --surface-hover: #f7f8fc;
+  --surface-subtle: #f0f2f7;
   --surface-overlay: #ffffff;
-  --item-hover: #eef0f4;
-  --foreground: #10131a;
-  --muted: #5f6675;
+  --item-hover: #eef0f5;
+  --foreground: #0c0f17;
+  --muted: #5b6373;
 
-  --border: #e4e7ee;
-  --border-strong: #d3d8e2;
+  --border: #e5e8f0;
+  --border-strong: #d4d9e4;
   --border-focus: rgb(61 92 245 / 0.55);
   --ring-focus: rgb(61 92 245 / 0.16);
   --tab-rail: rgb(16 19 26 / 0.08);
@@ -74,6 +75,7 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
+  --color-surface-subtle: var(--surface-subtle);
   --color-surface-overlay: var(--surface-overlay);
   --color-item-hover: var(--item-hover);
   --color-foreground: var(--foreground);
@@ -173,34 +175,73 @@ body {
 /* Vệt sáng nền của trang chủ. Không dùng cho màn trong app. */
 .hero-glow {
   background:
-    radial-gradient(60rem 32rem at 50% -14rem, rgb(61 92 245 / 0.12), transparent 70%),
-    radial-gradient(38rem 24rem at 82% 2rem, rgb(124 58 237 / 0.07), transparent 70%);
+    radial-gradient(64rem 34rem at 50% -16rem, rgb(61 92 245 / 0.16), transparent 68%),
+    radial-gradient(38rem 26rem at 88% 4rem, rgb(124 58 237 / 0.09), transparent 70%),
+    radial-gradient(30rem 22rem at 8% 8rem, rgb(14 165 233 / 0.06), transparent 70%);
 }
 
 .grid-lines {
   background-image:
-    linear-gradient(to right, rgb(16 19 26 / 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(16 19 26 / 0.05) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(70% 60% at 50% 0%, #000 40%, transparent 100%);
+    linear-gradient(to right, rgb(16 19 26 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(16 19 26 / 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(70% 60% at 50% 0%, #000 35%, transparent 100%);
 }
 
-/* Thẻ terminal giữ nền tối trên giao diện sáng: nội dung đọc như màn hình
-   dòng lệnh thật. Khai báo lại token trong phạm vi thẻ thay vì thêm bảng màu. */
-.terminal-card {
-  --background: #0b0d14;
-  --surface: #0e111a;
-  --foreground: #e9edf5;
-  --muted: #9099ac;
-  --border: rgb(160 180 220 / 0.14);
-  --border-strong: rgb(160 180 220 / 0.22);
+.dot-grid {
+  background-image: radial-gradient(rgb(16 19 26 / 0.13) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: radial-gradient(60% 55% at 50% 0%, #000 30%, transparent 100%);
+}
+
+/* Cửa sổ app desktop trong trang chủ: nền tối có chủ đích để tách khỏi trang
+   sáng và đọc như ảnh sản phẩm thật. Khai báo lại token trong phạm vi cửa sổ
+   thay vì thêm bảng màu thứ hai. */
+.app-window {
+  color-scheme: dark;
+
+  --background: #0a0b10;
+  --surface: #0e1016;
+  --surface-subtle: #141722;
+  --surface-hover: #171a24;
+  --surface-overlay: #171a24;
+  --item-hover: #1b1f2b;
+  --foreground: #eef1f8;
+  --muted: #929aac;
+
+  --border: rgb(255 255 255 / 0.09);
+  --border-strong: rgb(255 255 255 / 0.15);
   --primary: #8ba1ff;
-  --success: #14d99b;
-  --success-bg: rgb(0 188 125 / 0.16);
-  --danger: #ff6b84;
+  --primary-hover: #a3b4ff;
+  --primary-light: rgb(110 135 255 / 0.16);
+  --primary-foreground: #0b0d14;
+  --success: #43e0a0;
+  --success-bg: rgb(67 224 160 / 0.12);
+  --warning: #f0b45f;
+  --warning-bg: rgb(240 180 95 / 0.12);
+  --danger: #ff7a90;
+  --danger-bg: rgb(255 122 144 / 0.12);
+  --chart-fill: rgb(139 161 255 / 0.85);
 
   color: var(--foreground);
   background: var(--surface);
+  box-shadow:
+    0 40px 80px -32px rgb(8 12 28 / 0.5),
+    0 12px 28px -12px rgb(8 12 28 / 0.35),
+    0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+.app-window ::selection {
+  background: rgb(139 161 255 / 0.3);
+}
+
+.fade-bottom {
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+}
+
+/* Nền sáng cho khối nổi trong app-window (menu, tooltip). */
+.shadow-window {
+  box-shadow: 0 40px 80px -32px rgb(8 12 28 / 0.5), 0 12px 28px -12px rgb(8 12 28 / 0.35);
 }
 
 @keyframes fj-pulse {

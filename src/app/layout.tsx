@@ -9,12 +9,12 @@ export const metadata: Metadata = {
     template: "%s · FuJue Harness",
   },
   description:
-    "FuJue Harness gom model, công cụ, terminal và phiên làm việc vào một chỗ. Tải về cho Windows, macOS, Linux hoặc gọi qua API.",
+    "FuJue Harness gom model, công cụ và phiên làm việc vào một app desktop duy nhất. Tải về cho Windows, macOS, Linux hoặc gọi qua API.",
   metadataBase: new URL("https://fujue.dev"),
   openGraph: {
     title: "FuJue Harness",
     description:
-      "Harness agent cho đội ngũ dùng DeepSeek mỗi ngày. Model, công cụ, terminal và phiên làm việc trong một chỗ.",
+      "Harness agent cho đội ngũ dùng DeepSeek mỗi ngày. Model, công cụ và phiên làm việc trong một app desktop.",
     type: "website",
     locale: "vi_VN",
   },

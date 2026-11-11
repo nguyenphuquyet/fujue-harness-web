@@ -98,6 +98,10 @@ export function KeysClient({ initial, limit }: { initial: KeyView[]; limit: numb
             {activeCount} / {limit} khoá đang hoạt động. Khoá chỉ hiện đầy đủ một lần ngay khi tạo.
           </p>
         </div>
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-muted">
+          <span className="size-1.5 rounded-full bg-success" />
+          Dùng cho app và tích hợp
+        </span>
       </header>
 
       {createdKey ? (
@@ -145,15 +149,15 @@ export function KeysClient({ initial, limit }: { initial: KeyView[]; limit: numb
               Tạo khoá
             </button>
           </div>
-          <p className="mt-2 text-xs text-muted">Ví dụ: Máy văn phòng, CI pipeline</p>
+          <p className="mt-2 text-xs text-muted">Ví dụ: Máy văn phòng, MacBook cá nhân</p>
         </form>
         {error ? <p className="mt-2 text-xs text-error-text">{error}</p> : null}
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border">
-        <div className="overflow-x-auto">
+      <section className="rounded-2xl border border-border bg-surface">
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[34rem] text-left">
-            <thead className="bg-surface text-xs text-muted">
+            <thead className="bg-surface-subtle text-xs text-muted">
               <tr>
                 <th className="px-5 py-3 font-medium">Tên</th>
                 <th className="px-4 py-3 font-medium">Khoá</th>
@@ -165,8 +169,9 @@ export function KeysClient({ initial, limit }: { initial: KeyView[]; limit: numb
             <tbody className="divide-y divide-border bg-surface">
               {keys.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-muted">
-                    Chưa có khoá nào. Tạo khoá đầu tiên ở trên.
+                  <td colSpan={5} className="px-5 py-12 text-center">
+                    <p className="text-sm font-medium">Chưa có khoá nào</p>
+                    <p className="mt-1 text-xs text-muted">Tạo khoá đầu tiên ở khung phía trên.</p>
                   </td>
                 </tr>
               ) : (
@@ -210,10 +215,54 @@ export function KeysClient({ initial, limit }: { initial: KeyView[]; limit: numb
             </tbody>
           </table>
         </div>
+
+        <div className="divide-y divide-border md:hidden">
+          {keys.length === 0 ? (
+            <div className="px-5 py-12 text-center">
+              <p className="text-sm font-medium">Chưa có khoá nào</p>
+              <p className="mt-1 text-xs text-muted">Tạo khoá đầu tiên ở khung phía trên.</p>
+            </div>
+          ) : (
+            keys.map((key) => (
+              <article key={key.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{key.name}</p>
+                    <p className="mt-0.5 text-[11px] text-muted">Tạo {key.createdAt}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {key.revoked ? (
+                      <Badge tone="neutral">Đã thu hồi</Badge>
+                    ) : (
+                      <>
+                        <Badge tone="success">Hoạt động</Badge>
+                        <button
+                          type="button"
+                          onClick={() => setConfirming(key.id)}
+                          className="inline-flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger-bg hover:text-danger"
+                          aria-label={`Thu hồi khoá ${key.name}`}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-3 rounded-lg border border-border bg-surface-subtle px-2.5 py-1.5 font-mono text-xs text-muted">
+                  {key.prefix}••••
+                </p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
+                  <span>Dùng gần nhất: {key.lastUsed}</span>
+                  <span>{key.requests.toLocaleString("vi-VN")} lượt gọi</span>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
       </section>
 
       {confirming ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-overlay p-5 shadow-modal">
             <p className="flex items-center gap-2 text-sm font-medium">
               <TriangleAlert className="size-4 text-warning" />

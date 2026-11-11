@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, LifeBuoy } from "lucide-react";
 import { currentUser } from "@/lib/auth";
 import { Topbar } from "@/components/app/topbar";
 import { AppSidebar } from "@/components/app/sidebar";
@@ -22,35 +24,40 @@ export async function AppShell({
   if (requireAdmin && user.role !== "admin") redirect("/dashboard");
 
   return (
-    <div className="min-h-dvh bg-background">
-      <Topbar name={user.name} email={user.email} plan={user.plan} isAdmin={user.role === "admin"} />
-
-      <div className="mx-auto flex w-full max-w-7xl min-h-[calc(100dvh-3.5rem)]">
-        <aside className="hidden w-56 shrink-0 border-r border-border lg:block">
-          <div className="sticky top-14 flex h-[calc(100dvh-3.5rem)] flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="flex h-12 items-center border-b border-border px-4">
-                <Logo compact />
-              </div>
-              <AppSidebar isAdmin={user.role === "admin"} />
-            </div>
-            <div className="border-t border-border p-3">
-              <a
-                href="/"
-                className="flex h-9 items-center rounded-lg px-3 text-xs text-muted hover:bg-item-hover hover:text-foreground"
-              >
-                ← Về trang chủ
-              </a>
-            </div>
-          </div>
-        </aside>
-
-        <div className="min-w-0 flex-1">
-          <div className="lg:hidden">
-            <AppSidebar isAdmin={user.role === "admin"} mobile />
-          </div>
-          <div className="p-4 sm:p-6">{children}</div>
+    <div className="flex min-h-dvh bg-background">
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col bg-surface lg:flex">
+        <div className="flex h-16 shrink-0 items-center border-b border-border px-4">
+          <Logo compact />
         </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto py-3">
+          <AppSidebar isAdmin={user.role === "admin"} />
+        </div>
+
+        <div className="border-t border-border p-3">
+          <Link
+            href="/docs"
+            className="flex h-9 items-center gap-2 rounded-lg px-3 text-xs text-muted transition-colors hover:bg-item-hover hover:text-foreground"
+          >
+            <LifeBuoy className="size-3.5" />
+            Hướng dẫn sử dụng
+          </Link>
+          <Link
+            href="/"
+            className="flex h-9 items-center gap-2 rounded-lg px-3 text-xs text-muted transition-colors hover:bg-item-hover hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            Về trang chủ
+          </Link>
+          <p className="px-3 pt-2 text-[10.5px] text-muted/70">FuJue Harness 0.9.2</p>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Topbar name={user.name} email={user.email} plan={user.plan} isAdmin={user.role === "admin"} />
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
       </div>
     </div>
   );

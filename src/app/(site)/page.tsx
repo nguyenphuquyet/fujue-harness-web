@@ -7,21 +7,21 @@ import {
   Check,
   ChevronRight,
   Clock,
-  Code2,
-  Copy,
   Download,
+  FolderOpen,
   History,
   KeyRound,
+  Laptop,
   Layers,
   Monitor,
   Play,
   ShieldCheck,
   Sparkles,
-  Terminal as TerminalIcon,
-  Users,
+  Wrench,
 } from "lucide-react";
-import { Badge, Dot } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
+import { AppPreview } from "@/components/site/app-preview";
 import { listModels, formatTokens, formatPricePerMillion, STATUS_LABELS } from "@/lib/models";
 import { currentUser } from "@/lib/auth";
 
@@ -37,31 +37,56 @@ const FEATURES = [
     body: "Cùng một tác vụ, đổi từ model nhanh sang model suy luận sâu mà không mất ngữ cảnh. Giá hiển thị ngay khi chọn.",
   },
   {
-    icon: TerminalIcon,
-    title: "Terminal và công cụ",
-    body: "Chạy lệnh, đọc và sửa tệp, tìm web, gọi MCP server. 42 công cụ có sẵn, mỗi công cụ đều có giao diện riêng khi hiển thị kết quả.",
+    icon: Wrench,
+    title: "Công cụ ngay trong app",
+    body: "Đọc và sửa tệp, chạy lệnh, tìm web, gọi MCP server. 42 công cụ có sẵn, mỗi công cụ có giao diện riêng khi hiển thị kết quả.",
   },
   {
-    icon: Users,
-    title: "Phân quyền và nhật ký",
-    body: "Tách vai trò quản trị và thành viên. Mỗi lần đăng nhập, mỗi khoá API, mỗi thay đổi model đều nằm trong nhật ký thao tác.",
+    icon: ShieldCheck,
+    title: "Bạn giữ quyền quyết định",
+    body: "Duyệt từng thao tác nguy hiểm, giới hạn thư mục agent được chạm vào, và xem lại mọi việc nó đã làm trong nhật ký phiên.",
   },
   {
     icon: Clock,
     title: "Chạy nền",
-    body: "Tác vụ dài chạy ngoài phiên chat. Đóng cửa sổ vẫn chạy, quay lại lấy kết quả khi xong.",
+    body: "Tác vụ dài chạy ngoài cửa sổ chat. Đóng app vẫn chạy, quay lại lấy kết quả khi xong.",
   },
   {
     icon: Blocks,
-    title: "Mở bằng plugin",
+    title: "Mở rộng bằng plugin",
     body: "Thêm công cụ, prompt và cả màn hình bằng plugin Cordis. Không cần sửa lõi, không cần fork.",
   },
 ];
 
+const STEPS = [
+  {
+    title: "Tải app cho máy của bạn",
+    body: "Bản cài ký số cho Windows, macOS và Linux. Không cần cài thêm môi trường nào.",
+  },
+  {
+    title: "Đăng nhập bằng trình duyệt",
+    body: "App mở trang kết nối thiết bị và hiện mã 8 ký tự. Nhập mã một lần, app tự nhận khoá riêng.",
+  },
+  {
+    title: "Chọn thư mục và giao việc",
+    body: "Mở dự án, chọn model, viết việc cần làm. Agent đọc tệp, chạy lệnh và báo lại từng bước.",
+  },
+];
+
+const PLATFORMS = [
+  { icon: Monitor, os: "Windows", detail: "Windows 10+ · 64-bit", size: "128 MB" },
+  { icon: Apple, os: "macOS", detail: "macOS 13+ · Universal", size: "142 MB" },
+  { icon: Laptop, os: "Linux", detail: "Ubuntu, Fedora, Debian", size: "134 MB" },
+];
+
 const FAQ = [
   {
+    q: "Có bản dòng lệnh không?",
+    a: "Không. FuJue Harness được thiết kế để dùng hoàn toàn qua app desktop: mở dự án, giao việc, duyệt thao tác và xem kết quả trong một cửa sổ. Toàn bộ công cụ đều nằm trong app.",
+  },
+  {
     q: "FuJue Harness khác gì khi dùng trực tiếp web của DeepSeek?",
-    a: "Harness là lớp chạy trên máy bạn: nó giữ phiên, chạy lệnh trong workspace, đọc và sửa tệp, và gọi model qua khoá API của bạn. Web chat không có quyền chạm vào mã nguồn hay terminal của bạn.",
+    a: "Harness là app chạy trên máy bạn: nó giữ phiên, chạy lệnh trong workspace, đọc và sửa tệp, và gọi model qua khoá API của bạn. Web chat không có quyền chạm vào mã nguồn hay thư mục dự án của bạn.",
   },
   {
     q: "Tôi cần khoá API riêng hay dùng khoá của FuJue?",
@@ -87,93 +112,89 @@ export default async function HomePage() {
       {/* ============ HERO ============ */}
       <section className="relative overflow-hidden border-b border-border">
         <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden />
-        <div className="grid-lines pointer-events-none absolute inset-0 opacity-60" aria-hidden />
+        <div className="dot-grid pointer-events-none absolute inset-0 opacity-50" aria-hidden />
 
-        <div className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-16 sm:px-6 sm:pb-20 sm:pt-24">
+        <div className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pb-20 sm:pt-20">
           <div className="mx-auto max-w-3xl text-center">
             <Link
               href="/downloads"
               className="fj-rise inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface/80 px-3 py-1.5 text-xs text-muted backdrop-blur transition-colors hover:text-foreground"
             >
-              <Dot tone="brand" />
-              Bản xem trước 0.9.2 đã có cho Windows, macOS, Linux
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-light px-2 py-0.5 text-[10.5px] font-medium text-primary">
+                Mới
+              </span>
+              Bản xem trước 0.9.2 cho Windows, macOS, Linux
               <ArrowRight className="size-3" />
             </Link>
 
-            <h1 className="fj-rise mt-6 text-4xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-6xl">
-              Harness agent cho đội ngũ
-              <br className="hidden sm:block" /> dùng DeepSeek mỗi ngày
+            <h1 className="fj-rise mt-6 text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl">
+              Giao việc cho agent
+              <br className="hidden sm:block" /> ngay trên máy bạn
             </h1>
 
             <p className="fj-rise mx-auto mt-5 max-w-2xl text-base leading-7 text-muted text-pretty sm:text-lg">
-              FuJue Harness gom model, công cụ, terminal và phiên làm việc vào một chỗ. Cắm khoá
-              API, mở terminal, giao việc cho agent — phần còn lại nó tự chạy.
+              FuJue Harness là app desktop gom model, công cụ và phiên làm việc vào một cửa sổ.
+              Chọn thư mục dự án, giao việc — agent đọc tệp, chạy lệnh và báo lại kết quả.
             </p>
 
             <div className="fj-rise mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <ButtonLink href={user ? "/dashboard" : "/register"} variant="primary" size="lg" className="w-full sm:w-auto">
-                {user ? "Vào bảng điều khiển" : "Bắt đầu miễn phí"}
-                <ArrowRight className="size-4" />
-              </ButtonLink>
-              <ButtonLink href="/downloads" variant="outline" size="lg" className="w-full sm:w-auto">
+              <ButtonLink
+                href="/downloads"
+                variant="primary"
+                size="lg"
+                className="w-full sm:w-auto"
+              >
                 <Download className="size-4" />
-                Tải về máy
+                Tải app miễn phí
+              </ButtonLink>
+              <ButtonLink href="/docs#bat-dau" variant="outline" size="lg" className="w-full sm:w-auto">
+                <Play className="size-4" />
+                Xem cách hoạt động
               </ButtonLink>
             </div>
 
-            <p className="mt-4 text-xs text-muted">
-              Miễn phí cho cá nhân · Không cần thẻ · Windows, macOS, Linux
+            <p className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <Check className="size-3.5 text-success" />
+                Miễn phí cho cá nhân
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Check className="size-3.5 text-success" />
+                Không cần thẻ
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Check className="size-3.5 text-success" />
+                Cài trong một lần bấm
+              </span>
             </p>
           </div>
 
-          {/* Terminal */}
-          <div className="fj-rise mx-auto mt-12 max-w-3xl sm:mt-14">
-            <div className="terminal-card overflow-hidden rounded-2xl border border-border-strong shadow-popover">
-              <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-                <div className="flex gap-1.5" aria-hidden>
-                  <span className="size-2.5 rounded-full bg-[#ff5f57]/70" />
-                  <span className="size-2.5 rounded-full bg-[#febc2e]/70" />
-                  <span className="size-2.5 rounded-full bg-[#28c840]/70" />
-                </div>
-                <p className="font-mono text-xs text-muted">fujue — workspace: apps/web</p>
-                <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-success-bg px-2 py-0.5 text-[11px] text-success">
-                  <Dot tone="success" /> Phiên đang chạy
-                </span>
-              </div>
+          <div className="fj-rise mx-auto mt-12 max-w-4xl sm:mt-16">
+            <AppPreview />
+          </div>
 
-              <div className="space-y-3 p-4 font-mono text-[13px] leading-6 sm:p-5">
-                <p className="text-foreground">
-                  <span className="text-primary">❯</span> fujue &quot;sửa lỗi build của gói web&quot;
-                </p>
-                <div className="space-y-1 text-muted">
-                  <p>
-                    <span className="text-foreground">›</span> Đọc 42 tệp trong apps/web, packages/ui
-                  </p>
-                  <p>
-                    <span className="text-foreground">›</span> Chạy{" "}
-                    <span className="text-foreground">pnpm --filter web build</span>
-                  </p>
-                  <p className="text-danger">
-                    ✗ TS2305: Module &apos;@/lib/env&apos; has no exported member &apos;publicEnv&apos;
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-muted">
-                    <span className="text-foreground">›</span> Sửa 2 tệp: apps/web/src/lib/env.ts,
-                    apps/web/.env.example
-                  </p>
-                  <p className="text-success">✓ Build lại xong trong 14,2 giây</p>
-                  <p className="text-muted">
-                    <span className="text-foreground">›</span> Tổng: 38.412 token vào · 4.109 token ra ·{" "}
-                    <span className="text-foreground">$0,015</span>
-                  </p>
-                </div>
-                <p className="text-foreground">
-                  <span className="text-primary">❯</span>
-                  <span className="ml-2 inline-block h-4 w-2 translate-y-0.5 animate-pulse bg-foreground/70" />
-                </p>
-              </div>
-            </div>
+          <div className="mx-auto mt-5 grid max-w-4xl gap-2 sm:grid-cols-3">
+            {PLATFORMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.os}
+                  href="/downloads"
+                  className="group flex items-center gap-3 rounded-xl border border-border bg-surface/80 px-3.5 py-2.5 backdrop-blur transition-colors hover:border-border-strong"
+                >
+                  <span className="inline-flex size-8 items-center justify-center rounded-lg bg-surface-subtle text-muted transition-colors group-hover:text-foreground">
+                    <Icon className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium">FuJue Harness cho {item.os}</p>
+                    <p className="truncate text-[11px] text-muted">
+                      {item.detail} · {item.size}
+                    </p>
+                  </div>
+                  <Download className="ml-auto size-3.5 shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -182,8 +203,8 @@ export default async function HomePage() {
       <section className="border-b border-border bg-surface">
         <div className="mx-auto grid w-full max-w-6xl grid-cols-2 divide-x divide-border px-0 sm:grid-cols-4">
           {[
+            { value: "42", label: "công cụ dựng sẵn trong app" },
             { value: "6", label: "model trong danh mục" },
-            { value: "42", label: "công cụ dựng sẵn" },
             { value: "3", label: "nền tảng máy tính" },
             { value: "< 2s", label: "mở lại phiên cũ" },
           ].map((stat) => (
@@ -215,9 +236,9 @@ export default async function HomePage() {
               return (
                 <article
                   key={feature.title}
-                  className="rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-border-strong"
+                  className="group rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-border-strong"
                 >
-                  <span className="inline-flex size-9 items-center justify-center rounded-xl bg-primary-light text-primary">
+                  <span className="inline-flex size-9 items-center justify-center rounded-xl bg-primary-light text-primary transition-transform group-hover:-translate-y-0.5">
                     <Icon className="size-4" />
                   </span>
                   <h3 className="mt-4 text-base font-medium">{feature.title}</h3>
@@ -229,8 +250,89 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ============ BẮT ĐẦU + TẢI VỀ ============ */}
+      <section id="tai-ve" className="scroll-mt-20 border-b border-border bg-surface">
+        <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div>
+            <p className="text-xs font-medium tracking-wide text-primary uppercase">Bắt đầu</p>
+            <h2 className="mt-3 max-w-lg text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+              Từ tải về đến việc đầu tiên, ba bước.
+            </h2>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-muted">
+              Không cần dán khoá thủ công, không cần cấu hình tệp. Cài app, đăng nhập một lần,
+              rồi mở dự án và giao việc.
+            </p>
+
+            <ol className="mt-8 space-y-5">
+              {STEPS.map((step, index) => (
+                <li key={step.title} className="flex gap-3.5">
+                  <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background font-mono text-xs text-foreground">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">{step.title}</p>
+                    <p className="mt-1 max-w-md text-sm leading-6 text-muted">{step.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <ButtonLink href="/downloads" variant="primary">
+                <Download className="size-4" />
+                Chọn bản cài
+              </ButtonLink>
+              <ButtonLink href="/docs#bat-dau" variant="outline">
+                <BookOpen className="size-4" />
+                Đọc hướng dẫn
+              </ButtonLink>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-background p-2">
+            <div className="grid gap-2">
+              {PLATFORMS.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.os}
+                    className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 sm:flex-row sm:items-center"
+                  >
+                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground">
+                      <Icon className="size-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-2 text-sm font-medium">
+                        {item.os}
+                        {index === 0 ? <Badge tone="brand">Khuyên dùng</Badge> : null}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {item.detail} · {item.size}
+                      </p>
+                    </div>
+                    <ButtonLink
+                      href="/downloads"
+                      variant={index === 0 ? "primary" : "outline"}
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    >
+                      <Download className="size-3.5" />
+                      Tải
+                    </ButtonLink>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="flex items-center justify-center gap-2 px-3 py-3 text-center text-[11px] text-muted">
+              <ShieldCheck className="size-3.5 shrink-0 text-success" />
+              Tệp cài được ký số và notarize đầy đủ.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ============ MODELS ============ */}
-      <section id="model" className="scroll-mt-20 border-b border-border bg-surface">
+      <section id="model" className="scroll-mt-20 border-b border-border">
         <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-2xl">
@@ -253,7 +355,7 @@ export default async function HomePage() {
 
           <div className="mt-8 overflow-hidden rounded-2xl border border-border">
             <table className="w-full text-left">
-              <thead className="bg-background text-xs text-muted">
+              <thead className="bg-surface-subtle text-xs text-muted">
                 <tr>
                   <th className="px-5 py-3 font-medium">Model</th>
                   <th className="px-4 py-3 font-medium">Ngữ cảnh</th>
@@ -267,8 +369,12 @@ export default async function HomePage() {
                   <tr key={model.slug} className="transition-colors hover:bg-surface-hover">
                     <td className="px-5 py-4">
                       <p className="flex items-center gap-2 text-sm font-medium">
-                        {model.name}
-                        {model.featured === 1 ? <Badge tone="brand">Nổi bật</Badge> : null}
+                        <span className="whitespace-nowrap">{model.name}</span>
+                        {model.featured === 1 ? (
+                          <Badge tone="brand" className="hidden sm:inline-flex">
+                            Nổi bật
+                          </Badge>
+                        ) : null}
                       </p>
                       <p className="mt-0.5 max-w-md text-xs text-muted">{model.description}</p>
                     </td>
@@ -294,122 +400,25 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ============ DOWNLOADS ============ */}
-      <section id="tai-ve" className="scroll-mt-20 border-b border-border">
-        <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-          <div className="max-w-2xl">
-            <p className="text-xs font-medium tracking-wide text-primary uppercase">Tải về</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-              Cài trong một lần bấm
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-muted">
-              Bản xem trước 0.9.2, ký số đầy đủ. Cài xong, bấm “Đăng nhập bằng trình duyệt” trong
-              app để nối với tài khoản trên trang này.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-3 lg:grid-cols-3">
-            {[
-              {
-                icon: Monitor,
-                os: "Windows",
-                detail: "Windows 10 trở lên · 64-bit",
-                file: "FuJueHarness-0.9.2-win-x64.exe",
-                size: "128 MB",
-                primary: true,
-              },
-              {
-                icon: Apple,
-                os: "macOS",
-                detail: "macOS 13 trở lên · Apple Silicon và Intel",
-                file: "FuJueHarness-0.9.2-universal.dmg",
-                size: "142 MB",
-                primary: false,
-              },
-              {
-                icon: TerminalIcon,
-                os: "Linux",
-                detail: "Ubuntu 22.04, Fedora 40, Debian 12",
-                file: "FuJueHarness-0.9.2-x86_64.AppImage",
-                size: "134 MB",
-                primary: false,
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <article key={item.os} className="flex flex-col rounded-2xl border border-border bg-surface p-5">
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-background text-foreground">
-                      <Icon className="size-4" />
-                    </span>
-                    <div>
-                      <p className="text-base font-medium">{item.os}</p>
-                      <p className="text-xs text-muted">{item.detail}</p>
-                    </div>
-                  </div>
-
-                  <dl className="mt-5 space-y-2 border-t border-border pt-4 text-xs">
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-muted">Tệp</dt>
-                      <dd className="truncate font-mono text-foreground">{item.file}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted">Dung lượng</dt>
-                      <dd className="text-foreground">{item.size}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="mt-5">
-                    <ButtonLink
-                      href="/downloads"
-                      variant={item.primary ? "primary" : "outline"}
-                      className="w-full"
-                    >
-                      <Download className="size-4" />
-                      Tải cho {item.os}
-                    </ButtonLink>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-border bg-surface p-5 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex size-9 items-center justify-center rounded-xl bg-primary-light text-primary">
-                <Code2 className="size-4" />
-              </span>
-              <div>
-                <p className="text-sm font-medium">Dùng dòng lệnh</p>
-                <p className="text-xs text-muted">Cho CI, máy chủ và người quen terminal</p>
-              </div>
-            </div>
-            <code className="flex-1 overflow-x-auto rounded-xl border border-border bg-background px-3 py-2.5 font-mono text-xs text-foreground sm:ml-6">
-              npm i -g @fujue/harness && fujue login
-            </code>
-          </div>
-        </div>
-      </section>
-
       {/* ============ API ============ */}
       <section id="api" className="scroll-mt-20 border-b border-border bg-surface">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:items-center">
           <div>
             <p className="text-xs font-medium tracking-wide text-primary uppercase">API và khoá</p>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-              Một khoá API, dùng cho mọi thứ
+              Một khoá API, dùng cho app và tích hợp
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Tạo khoá trong bảng điều khiển rồi gọi model qua cổng tương thích OpenAI. Khoá có
-              tiền tố <span className="font-mono text-foreground">fj_live_</span>, chỉ hiện một lần
-              khi tạo, thu hồi được tức thì.
+              Tạo khoá trong bảng điều khiển, app tự nhận cấu hình khi đăng nhập. Khoá có tiền tố{" "}
+              <span className="font-mono text-foreground">fj_live_</span>, chỉ hiện một lần khi tạo,
+              thu hồi được tức thì.
             </p>
 
             <ul className="mt-6 space-y-3">
               {[
-                "Gọi đúng chuẩn /v1/chat/completions, đổi base URL là chạy",
+                "App tự nhận base URL, model mặc định và danh mục sau khi đăng nhập",
+                "Cổng tương thích OpenAI cho tích hợp nội bộ và công cụ khác",
                 "Mỗi khoá có hạn mức riêng và nhật ký sử dụng",
-                "Đăng nhập thiết bị bằng mã 8 ký tự, không dán khoá thủ công",
                 "Thu hồi một khoá không ảnh hưởng các khoá khác",
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2.5 text-sm text-muted">
@@ -431,32 +440,44 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border-strong bg-background">
+          <div className="app-window overflow-hidden rounded-2xl border border-white/10">
             <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-              <span className="rounded-md bg-surface px-2 py-1 font-mono text-[11px] text-foreground">
-                cURL
+              <span className="rounded-md bg-surface-subtle px-2 py-1 font-mono text-[11px] text-foreground">
+                GET
               </span>
-              <span className="font-mono text-[11px] text-muted">POST /v1/chat/completions</span>
-              <Copy className="ml-auto size-3.5 text-muted" aria-hidden />
+              <span className="font-mono text-[11px] text-muted">/v1/harness/config</span>
+              <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-success-bg px-2 py-0.5 text-[10.5px] text-success">
+                <span className="size-1.5 rounded-full bg-success" />
+                200 OK
+              </span>
             </div>
-            <pre className="overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-muted">
-              <code>{`curl https://api.fujue.dev/v1/chat/completions \\
-  -H "Authorization: Bearer fj_live_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "deepseek-v4",
-    "messages": [
-      { "role": "user", "content": "Giải thích lỗi này" }
-    ],
-    "stream": true
-  }'`}</code>
+            <pre className="overflow-x-auto p-4 font-mono text-[12px] leading-6 text-muted">
+              <code>{`{
+  "api": {
+    "base_url": "https://api.fujue.dev/v1"
+  },
+  "default_model": "deepseek-v4",
+  "models": [
+    {
+      "id": "deepseek-v4",
+      "context_window": 262144,
+      "pricing": {
+        "input_per_million_usd": 0.28,
+        "output_per_million_usd": 1.12
+      },
+      "source": {
+        "provider": "DeepSeek"
+      }
+    }
+  ]
+}`}</code>
             </pre>
           </div>
         </div>
       </section>
 
       {/* ============ FAQ ============ */}
-      <section className="border-b border-border">
+      <section id="faq" className="scroll-mt-20 border-b border-border">
         <div className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
           <div className="text-center">
             <p className="text-xs font-medium tracking-wide text-primary uppercase">Hỏi đáp</p>
@@ -485,24 +506,25 @@ export default async function HomePage() {
         <div className="relative mx-auto w-full max-w-3xl px-4 py-20 text-center sm:px-6">
           <Sparkles className="mx-auto size-6 text-primary" />
           <h2 className="mt-4 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-            Mở terminal và giao việc đầu tiên
+            Tải app và giao việc đầu tiên
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted">
-            Tạo tài khoản, lấy khoá API, tải app. Cả quá trình mất chưa tới hai phút.
+            Tạo tài khoản, tải app, đăng nhập bằng trình duyệt. Cả quá trình mất chưa tới hai
+            phút.
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-            <ButtonLink href={user ? "/dashboard" : "/register"} variant="primary" size="lg">
-              {user ? "Vào bảng điều khiển" : "Tạo tài khoản miễn phí"}
-              <ArrowRight className="size-4" />
+            <ButtonLink href="/downloads" variant="primary" size="lg">
+              <Download className="size-4" />
+              Tải app miễn phí
             </ButtonLink>
-            <ButtonLink href="/docs" variant="outline" size="lg">
-              <Play className="size-4" />
-              Xem hướng dẫn
+            <ButtonLink href={user ? "/dashboard" : "/register"} variant="outline" size="lg">
+              {user ? "Vào bảng điều khiển" : "Tạo tài khoản"}
+              <ArrowRight className="size-4" />
             </ButtonLink>
           </div>
           <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
-            <ShieldCheck className="size-3.5" />
-            Không cần thẻ · Huỷ bất cứ lúc nào
+            <FolderOpen className="size-3.5" />
+            Phiên và tệp nằm trên máy bạn
           </p>
         </div>
       </section>

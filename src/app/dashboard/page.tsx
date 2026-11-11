@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { Check, ChevronRight, Circle, KeyRound, Sparkles, Terminal } from "lucide-react";
+import {
+  AppWindow,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Circle,
+  Download,
+  KeyRound,
+  Sparkles,
+} from "lucide-react";
 import { currentUser } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { listKeys } from "@/lib/keys";
@@ -40,7 +49,7 @@ export default async function DashboardPage() {
     {
       key: "key",
       title: "Tạo khoá API đầu tiên",
-      body: "Khoá dùng cho app và cho lệnh gọi từ CI. Mỗi máy nên một khoá riêng.",
+      body: "Khoá dùng cho app và các tích hợp nội bộ. Mỗi máy nên một khoá riêng.",
       done: keys.length > 0,
       href: "/dashboard/keys",
       cta: "Quản lý khoá API",
@@ -55,14 +64,15 @@ export default async function DashboardPage() {
     },
     {
       key: "first",
-      title: "Chạy tác vụ đầu tiên",
-      body: "Mở terminal trong thư mục dự án và giao việc cho agent.",
+      title: "Mở app và giao việc đầu tiên",
+      body: "Chọn thư mục dự án, chọn model rồi mô tả việc cần làm cho agent.",
       done: false,
       href: "/docs#bat-dau",
       cta: "Xem hướng dẫn",
     },
   ];
   const doneCount = steps.filter((step) => step.done).length;
+  const progress = Math.round((doneCount / steps.length) * 100);
 
   return (
     <div className="space-y-5">
@@ -74,13 +84,13 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <ButtonLink href="/dashboard/keys" variant="outline" size="sm">
+          <ButtonLink href="/downloads" variant="outline" size="sm">
+            <Download className="size-3.5" />
+            Tải app
+          </ButtonLink>
+          <ButtonLink href="/dashboard/keys" variant="primary" size="sm">
             <KeyRound className="size-3.5" />
             Khoá API
-          </ButtonLink>
-          <ButtonLink href="/docs" variant="primary" size="sm">
-            <Terminal className="size-3.5" />
-            Bắt đầu nhanh
           </ButtonLink>
         </div>
       </div>
@@ -113,7 +123,10 @@ export default async function DashboardPage() {
           </div>
 
           {usage.length === 0 ? (
-            <p className="mt-10 py-10 text-center text-sm text-muted">Chưa có lượt gọi nào.</p>
+            <div className="mt-6 flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background/60 text-center">
+              <p className="text-sm text-muted">Chưa có lượt gọi nào.</p>
+              <p className="mt-1 text-xs text-muted">Mở app và giao việc đầu tiên để thấy số liệu.</p>
+            </div>
           ) : (
             <>
               <div className="mt-6 flex h-40 items-end gap-1.5">
@@ -134,7 +147,9 @@ export default async function DashboardPage() {
                 ))}
               </div>
               <div className="mt-2 flex justify-between text-[11px] text-muted">
-                <span>{new Date(usage[0].day).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}</span>
+                <span>
+                  {new Date(usage[0].day).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}
+                </span>
                 <span>
                   {new Date(usage[usage.length - 1].day).toLocaleDateString("vi-VN", {
                     day: "2-digit",
@@ -171,14 +186,22 @@ export default async function DashboardPage() {
 
         {/* Các bước bắt đầu */}
         <section className="rounded-2xl border border-border bg-surface lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              <h2 className="text-sm font-medium">Các bước bắt đầu</h2>
+          <div className="border-b border-border px-5 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-4 text-primary" />
+                <h2 className="text-sm font-medium">Các bước bắt đầu</h2>
+              </div>
+              <span className="text-xs text-muted">
+                {doneCount} / {steps.length} bước
+              </span>
             </div>
-            <span className="text-xs text-muted">
-              {doneCount} / {steps.length} bước
-            </span>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary transition-[width]"
+                style={{ width: `${Math.max(progress, 4)}%` }}
+              />
+            </div>
           </div>
 
           <ul className="divide-y divide-border">
@@ -240,6 +263,24 @@ export default async function DashboardPage() {
           )}
         </section>
       </div>
+
+      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="inline-flex size-9 items-center justify-center rounded-xl bg-primary-light text-primary">
+            <AppWindow className="size-4" />
+          </span>
+          <div>
+            <p className="text-sm font-medium">Đã cài app nhưng chưa thấy phiên?</p>
+            <p className="mt-1 text-xs text-muted">
+              Mở app, chọn Đăng nhập bằng trình duyệt và duyệt mã thiết bị để nhận khoá riêng.
+            </p>
+          </div>
+        </div>
+        <ButtonLink href="/device" variant="outline" size="sm" className="shrink-0">
+          Kết nối thiết bị
+          <ArrowRight className="size-3.5" />
+        </ButtonLink>
+      </section>
     </div>
   );
 }

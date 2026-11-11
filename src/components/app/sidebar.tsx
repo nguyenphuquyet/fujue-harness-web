@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
-  ChartNoAxesColumn,
   Cpu,
-  Gauge,
   KeyRound,
   LayoutDashboard,
   MonitorSmartphone,
@@ -27,8 +25,6 @@ const ICONS = {
   users: Users,
   models: Cpu,
   logs: ScrollText,
-  usage: ChartNoAxesColumn,
-  gauge: Gauge,
 };
 
 const USER_NAV: NavItem[] = [
@@ -45,53 +41,31 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/logs", label: "Nhật ký", icon: "logs" },
 ];
 
-function NavLink({ item, exact, compact = false }: { item: NavItem; exact?: boolean; compact?: boolean }) {
+function NavLink({ item, exact }: { item: NavItem; exact?: boolean }) {
   const pathname = usePathname();
   const Icon = ICONS[item.icon];
-  const active = exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const active = exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
   return (
     <Link
       href={item.href}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg transition-colors",
-        compact ? "h-8 shrink-0 whitespace-nowrap px-3 text-xs" : "h-9 px-3 text-sm",
+        "flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm transition-colors",
         active
-          ? "bg-primary-light text-foreground"
-          : "text-muted hover:bg-item-hover hover:text-foreground",
+          ? "bg-primary-light font-medium text-primary"
+          : "text-foreground/70 hover:bg-item-hover hover:text-foreground",
       )}
     >
-      <Icon className={cn("size-4", active ? "text-primary" : "text-muted")} />
+      <Icon className="size-4 shrink-0" />
       {item.label}
     </Link>
   );
 }
 
-export function AppSidebar({
-  isAdmin,
-  mobile = false,
-}: {
-  isAdmin: boolean;
-  mobile?: boolean;
-}) {
-  if (mobile) {
-    return (
-      <nav
-        className="scrollbar-clean flex gap-1 overflow-x-auto border-b border-border bg-surface px-3 py-2"
-        aria-label="Điều hướng bảng điều khiển"
-      >
-        {USER_NAV.map((item) => (
-          <NavLink key={item.href} item={item} exact={item.href === "/dashboard"} compact />
-        ))}
-        {isAdmin
-          ? ADMIN_NAV.map((item) => (
-              <NavLink key={item.href} item={item} exact={item.href === "/admin"} compact />
-            ))
-          : null}
-      </nav>
-    );
-  }
-
+export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
   return (
     <nav className="flex flex-col gap-1 p-3" aria-label="Điều hướng bảng điều khiển">
       {USER_NAV.map((item) => (
@@ -100,7 +74,7 @@ export function AppSidebar({
 
       {isAdmin ? (
         <>
-          <p className="mt-4 px-3 pb-1 text-[11px] font-medium tracking-wide text-muted uppercase">
+          <p className="mt-5 px-3 pb-1.5 text-[11px] font-medium tracking-wide text-muted uppercase">
             Quản trị
           </p>
           {ADMIN_NAV.map((item) => (

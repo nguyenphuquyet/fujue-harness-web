@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Apple, Download, Monitor } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { Dot } from "@/components/ui/badge";
 
@@ -6,7 +7,7 @@ const COLUMNS = [
   {
     title: "Sản phẩm",
     links: [
-      { href: "/downloads", label: "Tải về" },
+      { href: "/downloads", label: "Tải app desktop" },
       { href: "/models", label: "Danh mục model" },
       { href: "/pricing", label: "Bảng giá" },
       { href: "/#tinh-nang", label: "Tính năng" },
@@ -16,10 +17,10 @@ const COLUMNS = [
   {
     title: "Tài nguyên",
     links: [
-      { href: "/docs", label: "Bắt đầu nhanh" },
+      { href: "/docs", label: "Bắt đầu với app" },
+      { href: "/docs#giao-dien", label: "Khám phá giao diện" },
       { href: "/docs#api", label: "Tham chiếu API" },
-      { href: "/docs#cli", label: "Dòng lệnh" },
-      { href: "/docs#plugin", label: "Viết plugin" },
+      { href: "/docs#thiet-bi", label: "Kết nối thiết bị" },
       { href: "/docs#faq", label: "Câu hỏi thường gặp" },
     ],
   },
@@ -38,7 +39,7 @@ const COLUMNS = [
 export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-surface">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.5fr_repeat(3,1fr)]">
         <div>
           <div className="flex items-center gap-2.5">
             <LogoMark size={28} />
@@ -48,12 +49,31 @@ export function SiteFooter() {
             </div>
           </div>
           <p className="mt-4 max-w-xs text-sm leading-6 text-muted">
-            Harness agent cho đội ngũ dùng DeepSeek mỗi ngày: model, công cụ, terminal và phiên
-            làm việc trong một chỗ.
+            App desktop giao việc cho agent ngay trên máy bạn: model, công cụ và phiên làm việc
+            trong một cửa sổ.
           </p>
           <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5">
             <Dot tone="success" />
             <span className="text-xs text-muted">Mọi hệ thống đang hoạt động</span>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {[
+              { icon: Monitor, label: "Windows" },
+              { icon: Apple, label: "macOS" },
+              { icon: Download, label: "Linux" },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.label}
+                  href="/downloads"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] text-muted transition-colors hover:text-foreground"
+                >
+                  <Icon className="size-3" />
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
         </div>
 
