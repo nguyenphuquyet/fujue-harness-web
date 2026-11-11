@@ -195,14 +195,23 @@ tar -czf dist/fujue-web.tgz -C .next/standalone .
 scp dist/fujue-web.tgz deploy/ecosystem.config.cjs ubuntu@<vps>:/home/ubuntu/
 ```
 
+`npm run package` đã gỡ `data/` khỏi `.next/standalone` (Next theo dõi cả file DB mà app mở lúc
+build, nên bản dựng có thể mang theo một `fujue.db` rỗng). Giải nén gói có `data/` lên máy chủ sẽ
+đè mất dữ liệu thật — luôn kiểm tra `tar -tzf dist/fujue-web.tgz | grep data` trước khi chép lên.
+
 Trên máy chủ:
 
 ```sh
-mkdir -p /home/ubuntu/fujue-harness-web/data
-tar -xzf /home/ubuntu/fujue-web.tgz -C /home/ubuntu/fujue-harness-web
+cd /home/ubuntu/fujue-harness-web
+pm2 stop fujue-web
+cp -a data "data.bak-$(date +%Y%m%d-%H%M%S)"   # DB chạy WAL: chép cả db, -wal, -shm
+tar -xzf /home/ubuntu/fujue-web.tgz -C /home/ubuntu/fujue-harness-web --exclude=./data
 mv /home/ubuntu/ecosystem.config.cjs /home/ubuntu/fujue-harness-web/
-cd /home/ubuntu/fujue-harness-web && pm2 start ecosystem.config.cjs && pm2 save
+pm2 start ecosystem.config.cjs && pm2 save
 ```
+
+DB dùng chế độ WAL nên bản sao phải gồm cả `fujue.db-wal` và `fujue.db-shm` — chép riêng
+`fujue.db` lúc app còn chạy sẽ mất giao dịch gần nhất.
 
 `deploy/ecosystem.config.cjs` đặt `PORT=3145`, `HOSTNAME=0.0.0.0`, đường dẫn SQLite và các biến
 môi trường chung, nên sửa file này khi đổi miền. Tài khoản quản trị đầu tiên và mọi giá trị riêng

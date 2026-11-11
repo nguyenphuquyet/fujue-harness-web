@@ -475,70 +475,70 @@ export function ModelsClient({
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
               <div className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Field
-                  label="Nguồn model"
-                  htmlFor="provider"
-                  hint={
-                    providers.length === 0
-                      ? "Chưa có nguồn nào. Thêm nguồn ở khung phía trên trước khi thêm model."
-                      : "Mọi model đều thuộc một nguồn. Đồng bộ nguồn sẽ làm mới giá và ngữ cảnh của model đã chọn."
-                  }
-                >
-                  <Select
-                    id="provider"
-                    value={draft.providerId}
-                    onChange={(event) => setDraft({ ...draft, providerId: event.target.value })}
-                  >
-                    {draft.providerId === "" ? (
-                      <option value="" disabled>
-                        — Chọn nguồn —
-                      </option>
-                    ) : null}
-                    {providers.map((provider) => (
-                      <option key={provider.id} value={provider.id}>
-                        {provider.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-              </div>
-
-              {draft.providerId ? (
                 <div className="sm:col-span-2">
                   <Field
-                    label="Mã model bên nguồn"
-                    htmlFor="external-id"
-                    hint="Đúng id trong GET /models của nguồn, ví dụ openai/gpt-4o. Để trống nếu nguồn không trả về model này."
+                    label="Nguồn model"
+                    htmlFor="provider"
+                    hint={
+                      providers.length === 0
+                        ? "Chưa có nguồn nào. Thêm nguồn ở khung phía trên trước khi thêm model."
+                        : "Mọi model đều thuộc một nguồn. Đồng bộ nguồn sẽ làm mới giá và ngữ cảnh của model đã chọn."
+                    }
                   >
-                    <Input
-                      id="external-id"
-                      value={draft.externalId}
-                      onChange={(event) => setDraft({ ...draft, externalId: event.target.value })}
-                      placeholder="openai/gpt-4o"
-                      className="font-mono text-xs"
-                    />
+                    <Select
+                      id="provider"
+                      value={draft.providerId}
+                      onChange={(event) => setDraft({ ...draft, providerId: event.target.value })}
+                    >
+                      {draft.providerId === "" ? (
+                        <option value="" disabled>
+                          — Chọn nguồn —
+                        </option>
+                      ) : null}
+                      {providers.map((provider) => (
+                        <option key={provider.id} value={provider.id}>
+                          {provider.name}
+                        </option>
+                      ))}
+                    </Select>
                   </Field>
                 </div>
-              ) : null}
 
-              <Field label="Mã model" htmlFor="slug" hint="Chữ thường, số, gạch ngang">
-                <Input
-                  id="slug"
-                  value={draft.slug}
-                  disabled={Boolean(draft.id)}
-                  onChange={(event) => setDraft({ ...draft, slug: event.target.value })}
-                  placeholder="deepseek-v4"
-                />
-              </Field>
-              <Field label="Tên hiển thị" htmlFor="model-name">
-                <Input
-                  id="model-name"
-                  value={draft.name}
-                  onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-                  placeholder="DeepSeek V4"
-                />
-              </Field>
+                {draft.providerId ? (
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Mã model bên nguồn"
+                      htmlFor="external-id"
+                      hint="Đúng id trong GET /models của nguồn, ví dụ openai/gpt-4o. Để trống nếu nguồn không trả về model này."
+                    >
+                      <Input
+                        id="external-id"
+                        value={draft.externalId}
+                        onChange={(event) => setDraft({ ...draft, externalId: event.target.value })}
+                        placeholder="openai/gpt-4o"
+                        className="font-mono text-xs"
+                      />
+                    </Field>
+                  </div>
+                ) : null}
+
+                <Field label="Mã model" htmlFor="slug" hint="Chữ thường, số, gạch ngang">
+                  <Input
+                    id="slug"
+                    value={draft.slug}
+                    disabled={Boolean(draft.id)}
+                    onChange={(event) => setDraft({ ...draft, slug: event.target.value })}
+                    placeholder="deepseek-v4"
+                  />
+                </Field>
+                <Field label="Tên hiển thị" htmlFor="model-name">
+                  <Input
+                    id="model-name"
+                    value={draft.name}
+                    onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+                    placeholder="DeepSeek V4"
+                  />
+                </Field>
               </div>
 
               <button
@@ -568,265 +568,269 @@ export function ModelsClient({
                 <div className="overflow-hidden">
                   <div className="mt-3 space-y-3">
                     <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Họ model" htmlFor="family">
-                <Input
-                  id="family"
-                  value={draft.family}
-                  onChange={(event) => setDraft({ ...draft, family: event.target.value })}
-                />
-              </Field>
-              <Field label="Nhà cung cấp" htmlFor="vendor">
-                <Input
-                  id="vendor"
-                  value={draft.vendor}
-                  onChange={(event) => setDraft({ ...draft, vendor: event.target.value })}
-                />
-              </Field>
-              <Field label="Ngữ cảnh (token)" htmlFor="context">
-                <Input
-                  id="context"
-                  type="number"
-                  value={draft.contextWindow}
-                  onChange={(event) =>
-                    setDraft({ ...draft, contextWindow: Number(event.target.value) })
-                  }
-                />
-              </Field>
-              <Field label="Ra tối đa (token)" htmlFor="max-output">
-                <Input
-                  id="max-output"
-                  type="number"
-                  value={draft.maxOutput}
-                  onChange={(event) => setDraft({ ...draft, maxOutput: Number(event.target.value) })}
-                />
-              </Field>
-              <Field label="Giá vào ($/1M)" htmlFor="input-price">
-                <Input
-                  id="input-price"
-                  type="number"
-                  step="0.01"
-                  value={draft.inputPrice}
-                  onChange={(event) =>
-                    setDraft({ ...draft, inputPrice: Number(event.target.value) })
-                  }
-                />
-              </Field>
-              <Field label="Giá ra ($/1M)" htmlFor="output-price">
-                <Input
-                  id="output-price"
-                  type="number"
-                  step="0.01"
-                  value={draft.outputPrice}
-                  onChange={(event) =>
-                    setDraft({ ...draft, outputPrice: Number(event.target.value) })
-                  }
-                />
-              </Field>
-              <Field label="Tốc độ" htmlFor="speed">
-                <Select
-                  id="speed"
-                  value={draft.speed}
-                  onChange={(event) => setDraft({ ...draft, speed: event.target.value })}
-                >
-                  <option value="fast">Nhanh</option>
-                  <option value="balanced">Cân bằng</option>
-                  <option value="deep">Suy luận sâu</option>
-                </Select>
-              </Field>
-              <Field label="Trạng thái" htmlFor="status">
-                <Select
-                  id="status"
-                  value={draft.status}
-                  onChange={(event) => setDraft({ ...draft, status: event.target.value })}
-                >
-                  <option value="stable">Ổn định</option>
-                  <option value="beta">Beta</option>
-                  <option value="preview">Xem trước</option>
-                  <option value="retired">Ngừng phát hành</option>
-                </Select>
-              </Field>
-            </div>
+                      <Field label="Họ model" htmlFor="family">
+                        <Input
+                          id="family"
+                          value={draft.family}
+                          onChange={(event) => setDraft({ ...draft, family: event.target.value })}
+                        />
+                      </Field>
+                      <Field label="Nhà cung cấp" htmlFor="vendor">
+                        <Input
+                          id="vendor"
+                          value={draft.vendor}
+                          onChange={(event) => setDraft({ ...draft, vendor: event.target.value })}
+                        />
+                      </Field>
+                      <Field label="Ngữ cảnh (token)" htmlFor="context">
+                        <Input
+                          id="context"
+                          type="number"
+                          value={draft.contextWindow}
+                          onChange={(event) =>
+                            setDraft({ ...draft, contextWindow: Number(event.target.value) })
+                          }
+                        />
+                      </Field>
+                      <Field label="Ra tối đa (token)" htmlFor="max-output">
+                        <Input
+                          id="max-output"
+                          type="number"
+                          value={draft.maxOutput}
+                          onChange={(event) =>
+                            setDraft({ ...draft, maxOutput: Number(event.target.value) })
+                          }
+                        />
+                      </Field>
+                      <Field label="Giá vào ($/1M)" htmlFor="input-price">
+                        <Input
+                          id="input-price"
+                          type="number"
+                          step="0.01"
+                          value={draft.inputPrice}
+                          onChange={(event) =>
+                            setDraft({ ...draft, inputPrice: Number(event.target.value) })
+                          }
+                        />
+                      </Field>
+                      <Field label="Giá ra ($/1M)" htmlFor="output-price">
+                        <Input
+                          id="output-price"
+                          type="number"
+                          step="0.01"
+                          value={draft.outputPrice}
+                          onChange={(event) =>
+                            setDraft({ ...draft, outputPrice: Number(event.target.value) })
+                          }
+                        />
+                      </Field>
+                      <Field label="Tốc độ" htmlFor="speed">
+                        <Select
+                          id="speed"
+                          value={draft.speed}
+                          onChange={(event) => setDraft({ ...draft, speed: event.target.value })}
+                        >
+                          <option value="fast">Nhanh</option>
+                          <option value="balanced">Cân bằng</option>
+                          <option value="deep">Suy luận sâu</option>
+                        </Select>
+                      </Field>
+                      <Field label="Trạng thái" htmlFor="status">
+                        <Select
+                          id="status"
+                          value={draft.status}
+                          onChange={(event) => setDraft({ ...draft, status: event.target.value })}
+                        >
+                          <option value="stable">Ổn định</option>
+                          <option value="beta">Beta</option>
+                          <option value="preview">Xem trước</option>
+                          <option value="retired">Ngừng phát hành</option>
+                        </Select>
+                      </Field>
+                    </div>
 
-            <div className="mt-3">
-              <Field label="Mô tả" htmlFor="description" hint="Một câu, hiện dưới tên model">
-                <Textarea
-                  id="description"
-                  rows={3}
-                  value={draft.description}
-                  onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                />
-              </Field>
-            </div>
+                    <Field label="Mô tả" htmlFor="description" hint="Một câu, hiện dưới tên model">
+                      <Textarea
+                        id="description"
+                        rows={3}
+                        value={draft.description}
+                        onChange={(event) =>
+                          setDraft({ ...draft, description: event.target.value })
+                        }
+                      />
+                    </Field>
 
-            <label className="mt-3 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={draft.featured}
-                onChange={(event) => setDraft({ ...draft, featured: event.target.checked })}
-                className="size-4 rounded border-border-strong bg-surface accent-[var(--primary)]"
-              />
-              Hiện ở mục “Nổi bật” trên trang chủ
-            </label>
-
-            <fieldset className="mt-4">
-              <legend className="text-sm font-medium">Loại đầu vào</legend>
-              <div className="mt-2 flex flex-wrap gap-4">
-                {INPUT_MODALITIES.map((modality) => {
-                  const checked = draft.inputTypes.includes(modality);
-                  return (
-                    <label key={modality} className="flex items-center gap-2 text-sm">
+                    <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={checked}
-                        // Model luôn phải nhận ít nhất một kiểu đầu vào.
-                        disabled={checked && draft.inputTypes.length === 1}
-                        onChange={(event) => {
-                          const next = event.target.checked
-                            ? INPUT_MODALITIES.filter(
-                                (item) => item === modality || draft.inputTypes.includes(item),
-                              )
-                            : draft.inputTypes.filter((item) => item !== modality);
-                          setDraft({ ...draft, inputTypes: next.length > 0 ? next : ["text"] });
-                        }}
+                        checked={draft.featured}
+                        onChange={(event) =>
+                          setDraft({ ...draft, featured: event.target.checked })
+                        }
                         className="size-4 rounded border-border-strong bg-surface accent-[var(--primary)]"
                       />
-                      {modality === "text" ? "Văn bản" : "Hình ảnh"}
+                      Hiện ở mục “Nổi bật” trên trang chủ
                     </label>
-                  );
-                })}
-              </div>
-              <p className="mt-1.5 text-xs text-muted">
-                Harness ghi thẳng vào <span className="font-mono">input</span> của pi-ai, nên model
-                chỉ nhận hình ảnh nếu khai báo ở đây.
-              </p>
-            </fieldset>
 
-            <div className="mt-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium">Mức suy luận</span>
-                <label className="flex items-center gap-2 text-sm text-muted">
-                  <input
-                    type="checkbox"
-                    checked={draft.reasoningEfforts !== null}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        reasoningEfforts: event.target.checked
-                          ? { ...DEFAULT_REASONING_EFFORTS }
-                          : null,
-                      })
-                    }
-                    className="size-4 rounded border-border-strong bg-surface accent-[var(--primary)]"
-                  />
-                  Bật suy luận
-                </label>
-              </div>
-
-              {draft.reasoningEfforts ? (
-                <div className="mt-2 space-y-2">
-                  <div className="grid grid-cols-[7.5rem_1fr_2rem] gap-2 text-[11px] text-muted">
-                    <span>Mức</span>
-                    <span>Giá trị gửi API</span>
-                    <span aria-hidden />
-                  </div>
-                  {Object.entries(draft.reasoningEfforts).map(([level, wire], index) => (
-                    <div key={index} className="grid grid-cols-[7.5rem_1fr_2rem] items-center gap-2">
-                      <Select
-                        aria-label={`Mức suy luận ${index + 1}`}
-                        value={level}
-                        onChange={(event) =>
-                          setDraft({
-                            ...draft,
-                            reasoningEfforts: replaceLevel(
-                              draft.reasoningEfforts ?? {},
-                              level,
-                              event.target.value as ReasoningLevel,
-                            ),
-                          })
-                        }
-                        className="h-9 md:h-9"
-                      >
-                        {REASONING_LEVELS.map((option) => (
-                          <option
-                            key={option}
-                            value={option}
-                            disabled={
-                              option !== level &&
-                              Object.prototype.hasOwnProperty.call(
-                                draft.reasoningEfforts,
-                                option,
-                              )
-                            }
-                          >
-                            {option}
-                          </option>
-                        ))}
-                      </Select>
-                      <Input
-                        aria-label={`Giá trị gửi API cho ${level}`}
-                        value={wire ?? ""}
-                        disabled={level === "off"}
-                        placeholder={level === "off" ? "Không gửi" : level}
-                        onChange={(event) =>
-                          setDraft({
-                            ...draft,
-                            reasoningEfforts: {
-                              ...draft.reasoningEfforts,
-                              [level]: event.target.value === "" ? null : event.target.value,
-                            },
-                          })
-                        }
-                        className="h-9 font-mono text-xs md:h-9"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = Object.fromEntries(
-                            Object.entries(draft.reasoningEfforts ?? {}).filter(
-                              ([item]) => item !== level,
-                            ),
+                    <fieldset>
+                      <legend className="text-sm font-medium">Loại đầu vào</legend>
+                      <div className="mt-2 flex flex-wrap gap-4">
+                        {INPUT_MODALITIES.map((modality) => {
+                          const checked = draft.inputTypes.includes(modality);
+                          return (
+                            <label key={modality} className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                // Model luôn phải nhận ít nhất một kiểu đầu vào.
+                                disabled={checked && draft.inputTypes.length === 1}
+                                onChange={(event) => {
+                                  const next = event.target.checked
+                                    ? INPUT_MODALITIES.filter(
+                                        (item) => item === modality || draft.inputTypes.includes(item),
+                                      )
+                                    : draft.inputTypes.filter((item) => item !== modality);
+                                  setDraft({ ...draft, inputTypes: next.length > 0 ? next : ["text"] });
+                                }}
+                                className="size-4 rounded border-border-strong bg-surface accent-[var(--primary)]"
+                              />
+                              {modality === "text" ? "Văn bản" : "Hình ảnh"}
+                            </label>
                           );
-                          setDraft({
-                            ...draft,
-                            reasoningEfforts: Object.keys(next).length > 0 ? next : null,
-                          });
-                        }}
-                        className="inline-flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger-bg hover:text-danger"
-                        aria-label={`Xoá mức ${level}`}
-                        title={`Xoá mức ${level}`}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
+                        })}
+                      </div>
+                      <p className="mt-1.5 text-xs text-muted">
+                        Harness ghi thẳng vào <span className="font-mono">input</span> của pi-ai, nên model
+                        chỉ nhận hình ảnh nếu khai báo ở đây.
+                      </p>
+                    </fieldset>
+
+                    <div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium">Mức suy luận</span>
+                        <label className="flex items-center gap-2 text-sm text-muted">
+                          <input
+                            type="checkbox"
+                            checked={draft.reasoningEfforts !== null}
+                            onChange={(event) =>
+                              setDraft({
+                                ...draft,
+                                reasoningEfforts: event.target.checked
+                                  ? { ...DEFAULT_REASONING_EFFORTS }
+                                  : null,
+                              })
+                            }
+                            className="size-4 rounded border-border-strong bg-surface accent-[var(--primary)]"
+                          />
+                          Bật suy luận
+                        </label>
+                      </div>
+
+                      {draft.reasoningEfforts ? (
+                        <div className="mt-2 space-y-2">
+                          <div className="grid grid-cols-[7.5rem_1fr_2rem] gap-2 text-[11px] text-muted">
+                            <span>Mức</span>
+                            <span>Giá trị gửi API</span>
+                            <span aria-hidden />
+                          </div>
+                          {Object.entries(draft.reasoningEfforts).map(([level, wire], index) => (
+                            <div key={index} className="grid grid-cols-[7.5rem_1fr_2rem] items-center gap-2">
+                              <Select
+                                aria-label={`Mức suy luận ${index + 1}`}
+                                value={level}
+                                onChange={(event) =>
+                                  setDraft({
+                                    ...draft,
+                                    reasoningEfforts: replaceLevel(
+                                      draft.reasoningEfforts ?? {},
+                                      level,
+                                      event.target.value as ReasoningLevel,
+                                    ),
+                                  })
+                                }
+                                className="h-9 md:h-9"
+                              >
+                                {REASONING_LEVELS.map((option) => (
+                                  <option
+                                    key={option}
+                                    value={option}
+                                    disabled={
+                                      option !== level &&
+                                      Object.prototype.hasOwnProperty.call(
+                                        draft.reasoningEfforts,
+                                        option,
+                                      )
+                                    }
+                                  >
+                                    {option}
+                                  </option>
+                                ))}
+                              </Select>
+                              <Input
+                                aria-label={`Giá trị gửi API cho ${level}`}
+                                value={wire ?? ""}
+                                disabled={level === "off"}
+                                placeholder={level === "off" ? "Không gửi" : level}
+                                onChange={(event) =>
+                                  setDraft({
+                                    ...draft,
+                                    reasoningEfforts: {
+                                      ...draft.reasoningEfforts,
+                                      [level]: event.target.value === "" ? null : event.target.value,
+                                    },
+                                  })
+                                }
+                                className="h-9 font-mono text-xs md:h-9"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = Object.fromEntries(
+                                    Object.entries(draft.reasoningEfforts ?? {}).filter(
+                                      ([item]) => item !== level,
+                                    ),
+                                  );
+                                  setDraft({
+                                    ...draft,
+                                    reasoningEfforts: Object.keys(next).length > 0 ? next : null,
+                                  });
+                                }}
+                                className="inline-flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger-bg hover:text-danger"
+                                aria-label={`Xoá mức ${level}`}
+                                title={`Xoá mức ${level}`}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const used = Object.keys(draft.reasoningEfforts ?? {});
+                              const level = REASONING_LEVELS.find((option) => !used.includes(option));
+                              if (!level) return;
+                              setDraft({
+                                ...draft,
+                                reasoningEfforts: {
+                                  ...draft.reasoningEfforts,
+                                  [level]: level === "off" ? null : level,
+                                },
+                              });
+                            }}
+                            disabled={Object.keys(draft.reasoningEfforts).length >= REASONING_LEVELS.length}
+                          >
+                            <Plus className="size-3.5" />
+                            Thêm mức
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="mt-1.5 text-xs text-muted">
+                          Tắt: harness không khai báo mức nào, model không hiện lựa chọn suy luận.
+                        </p>
+                      )}
                     </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const used = Object.keys(draft.reasoningEfforts ?? {});
-                      const level = REASONING_LEVELS.find((option) => !used.includes(option));
-                      if (!level) return;
-                      setDraft({
-                        ...draft,
-                        reasoningEfforts: {
-                          ...draft.reasoningEfforts,
-                          [level]: level === "off" ? null : level,
-                        },
-                      });
-                    }}
-                    disabled={Object.keys(draft.reasoningEfforts).length >= REASONING_LEVELS.length}
-                  >
-                    <Plus className="size-3.5" />
-                    Thêm mức
-                  </Button>
-                </div>
-              ) : (
-                <p className="mt-1.5 text-xs text-muted">
-                  Tắt: harness không khai báo mức nào, model không hiện lựa chọn suy luận.
-                </p>
-              )}
-            </div>
 
                   </div>
                 </div>

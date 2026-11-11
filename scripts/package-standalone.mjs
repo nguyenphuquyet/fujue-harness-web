@@ -30,5 +30,10 @@ try {
   // Không có `public`: site chỉ dùng route và file trong .next, không cần chép gì.
 }
 
+// Next theo dõi cả file mà app mở lúc build, nên `.next/standalone` có thể chứa
+// `data/fujue.db` — DB rỗng của máy build. Giải nén gói này lên máy chủ sẽ đè
+// mất dữ liệu thật, nên gỡ hẳn trước khi đóng gói.
+await rm(path.join(standalone, "data"), { recursive: true, force: true });
+
 console.log(`Bản chạy được: ${standalone}`);
 console.log("Chạy thử: PORT=3145 HOSTNAME=0.0.0.0 node .next/standalone/server.js");
