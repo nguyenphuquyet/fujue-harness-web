@@ -3,7 +3,12 @@ import { requireAdmin } from "@/lib/auth";
 import { logAudit, one, now, run } from "@/lib/db";
 import { fail, guard, num, readJson, str } from "@/lib/http";
 import { resolveSource } from "@/lib/providers";
-import { clearDefaultModelIf, setDefaultModelSlug } from "@/lib/models";
+import {
+  clearDefaultModelIf,
+  setDefaultModelSlug,
+  serializeInputTypes,
+  serializeReasoningEfforts,
+} from "@/lib/models";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   return guard(async () => {
@@ -35,6 +40,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (body.input_price !== undefined) push("input_price", num(body.input_price, 0));
     if (body.output_price !== undefined) push("output_price", num(body.output_price, 0));
     if (body.featured !== undefined) push("featured", body.featured ? 1 : 0);
+    if (body.input_types !== undefined) push("input_types", serializeInputTypes(body.input_types));
+    if (body.reasoning_efforts !== undefined)
+      push("reasoning_efforts", serializeReasoningEfforts(body.reasoning_efforts));
 
     if (body.provider_id !== undefined || body.external_id !== undefined) {
       const source = resolveSource(body, id);

@@ -1,4 +1,4 @@
-import { getDefaultModelSlug, listModels } from "@/lib/models";
+import { getDefaultModelSlug, listModels, parseInputTypes, parseReasoningEfforts } from "@/lib/models";
 import { listProviders } from "@/lib/providers";
 import { ModelsClient, type ModelView } from "./models-client";
 import { ProvidersPanel } from "./providers-panel";
@@ -22,6 +22,8 @@ export default function AdminModelsPage() {
     status: model.status,
     description: model.description,
     featured: model.featured === 1,
+    inputTypes: parseInputTypes(model.input_types),
+    reasoningEfforts: parseReasoningEfforts(model.reasoning_efforts),
     released: new Date(model.released_at).toLocaleDateString("vi-VN"),
     isDefault: model.slug === defaultSlug,
     providerId: model.provider_id,

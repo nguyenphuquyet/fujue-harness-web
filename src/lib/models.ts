@@ -1,4 +1,10 @@
 import { all, deleteSetting, getSetting, one, setSetting } from "./db";
+import {
+  parseInputTypes,
+  parseReasoningEfforts,
+  type InputModality,
+  type ReasoningEfforts,
+} from "./model-config";
 
 export type ModelRow = {
   id: string;
@@ -20,7 +26,13 @@ export type ModelRow = {
   /** Mã model bên API nguồn, dùng để ghép cặp khi đồng bộ lại. */
   external_id: string | null;
   synced_at: number | null;
+  /** JSON array các kiểu đầu vào model nhận. */
+  input_types: string;
+  /** JSON object mức suy luận → giá trị gửi lên API, null khi model không suy luận. */
+  reasoning_efforts: string | null;
 };
+
+export * from "./model-config";
 
 export const SPEED_LABELS: Record<string, string> = {
   fast: "Nhanh",
@@ -60,6 +72,10 @@ export type PublicModel = {
   owned_by: string;
   context_window: number;
   max_output_tokens: number;
+  /** Kiểu đầu vào model nhận; harness ghi thẳng vào `input` của pi-ai. */
+  input_types: InputModality[];
+  /** Mức suy luận → giá trị gửi lên API, null khi model không suy luận. */
+  reasoning_efforts: ReasoningEfforts | null;
   pricing: { input_per_million_usd: number; output_per_million_usd: number };
   status: string;
   /** Model mặc định mà harness dùng khi cấu hình không chỉ định model khác. */
@@ -88,6 +104,8 @@ export function listPublicModels(): PublicModel[] {
     owned_by: model.vendor,
     context_window: model.context_window,
     max_output_tokens: model.max_output,
+    input_types: parseInputTypes(model.input_types),
+    reasoning_efforts: parseReasoningEfforts(model.reasoning_efforts),
     pricing: {
       input_per_million_usd: model.input_price,
       output_per_million_usd: model.output_price,

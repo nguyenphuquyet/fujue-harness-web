@@ -122,7 +122,9 @@ function migrate(db: DatabaseSync): void {
       status         TEXT NOT NULL DEFAULT 'stable',
       description    TEXT NOT NULL,
       featured       INTEGER NOT NULL DEFAULT 0,
-      released_at    INTEGER NOT NULL
+      released_at    INTEGER NOT NULL,
+      input_types    TEXT NOT NULL DEFAULT '["text"]',
+      reasoning_efforts TEXT
     );
 
     CREATE TABLE IF NOT EXISTS providers (
@@ -188,6 +190,10 @@ function migrate(db: DatabaseSync): void {
     ["provider_id", "TEXT"],
     ["external_id", "TEXT"],
     ["synced_at", "INTEGER"],
+    // Kiểu đầu vào model nhận (`text`, `image`) và bảng mức suy luận của model.
+    // Model cũ mặc định chỉ nhận văn bản và không khai báo suy luận.
+    ["input_types", `TEXT NOT NULL DEFAULT '["text"]'`],
+    ["reasoning_efforts", "TEXT"],
   ] as const;
   for (const [name, definition] of additions) {
     if (!columns.has(name)) db.exec(`ALTER TABLE models ADD COLUMN ${name} ${definition}`);

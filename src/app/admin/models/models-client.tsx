@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
+import {
+  DEFAULT_REASONING_EFFORTS,
+  INPUT_MODALITIES,
+  REASONING_LEVELS,
+  type InputModality,
+  type ReasoningEfforts,
+  type ReasoningLevel,
+} from "@/lib/model-config";
 
 export type ModelView = {
   id: string;
@@ -21,6 +29,10 @@ export type ModelView = {
   status: string;
   description: string;
   featured: boolean;
+  /** Kiểu đầu vào model nhận, luôn có ít nhất `text`. */
+  inputTypes: InputModality[];
+  /** Mức suy luận → giá trị gửi lên API, null khi model không suy luận. */
+  reasoningEfforts: ReasoningEfforts | null;
   released: string;
   /** Model mặc định harness dùng khi cấu hình không chỉ định model khác. */
   isDefault: boolean;
@@ -57,9 +69,52 @@ const EMPTY: Draft = {
   status: "beta",
   description: "",
   featured: false,
+  inputTypes: ["text"],
+  reasoningEfforts: null,
   providerId: "",
   externalId: "",
 };
+
+/**
+ * Ô giá trị để trống nghĩa là gửi đúng tên mức; riêng “off” luôn không gửi gì.
+ *
+ * @param efforts Bảng mức suy luận đang sửa, null khi model không suy luận.
+ * @returns Bảng đã điền giá trị mặc định, hoặc null.
+ */
+function sanitizeEfforts(efforts: ReasoningEfforts | null): ReasoningEfforts | null {
+  if (!efforts) return null;
+  const entries = Object.entries(efforts).map(([level, wire]) => {
+    if (level === "off") return [level, null] as const;
+    const text = (wire ?? "").trim();
+    return [level, text === "" ? level : text] as const;
+  });
+  return entries.length === 0 ? null : Object.fromEntries(entries);
+}
+
+/**
+ * Đổi tên một mức, giữ nguyên thứ tự và giá trị tuỳ chỉnh đã gõ.
+ *
+ * @param efforts Bảng mức suy luận đang sửa.
+ * @param from Mức hiện tại của dòng.
+ * @param to Mức mới.
+ * @returns Bảng mới, không sửa bảng cũ.
+ */
+function replaceLevel(
+  efforts: ReasoningEfforts,
+  from: string,
+  to: ReasoningLevel,
+): ReasoningEfforts {
+  const next: ReasoningEfforts = {};
+  for (const [level, wire] of Object.entries(efforts)) {
+    if (level !== from) {
+      next[level] = wire;
+      continue;
+    }
+    next[to] =
+      to === "off" ? null : typeof wire === "string" && wire !== "" && wire !== from ? wire : to;
+  }
+  return next;
+}
 
 export function ModelsClient({
   initial,
@@ -102,6 +157,11 @@ export function ModelsClient({
       setError("Chọn nguồn cho model trước khi lưu.");
       return;
     }
+    const efforts = sanitizeEfforts(draft.reasoningEfforts);
+    if (efforts && !Object.keys(efforts).some((level) => level !== "off")) {
+      setError("Bật suy luận thì cần thêm ít nhất một mức khác “off”.");
+      return;
+    }
     setPending(true);
     setError(null);
 
@@ -122,6 +182,8 @@ export function ModelsClient({
         status: draft.status,
         description: draft.description,
         featured: draft.featured,
+        input_types: draft.inputTypes,
+        reasoning_efforts: efforts,
         provider_id: draft.providerId,
         external_id: draft.externalId,
       }),
@@ -149,6 +211,8 @@ export function ModelsClient({
       status: draft.status,
       description: draft.description,
       featured: draft.featured,
+      inputTypes: draft.inputTypes,
+      reasoningEfforts: efforts,
       providerId: draft.providerId === "" ? null : draft.providerId,
       externalId: draft.externalId.trim() === "" ? null : draft.externalId.trim(),
       source,
@@ -288,6 +352,16 @@ export function ModelsClient({
                     </p>
                     <p className="font-mono text-[11px] whitespace-nowrap text-muted">
                       {model.slug} · {model.vendor}
+                    </p>
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <Badge>
+                        {model.inputTypes.includes("image") ? "Văn bản + hình ảnh" : "Văn bản"}
+                      </Badge>
+                      {model.reasoningEfforts ? (
+                        <Badge tone="brand">
+                          Suy luận · {Object.keys(model.reasoningEfforts).join(" / ")}
+                        </Badge>
+                      ) : null}
                     </p>
                   </td>
                   <td className="hidden px-4 py-3 font-mono text-xs text-muted sm:table-cell">
@@ -531,6 +605,166 @@ export function ModelsClient({
               />
               Hiện ở mục “Nổi bật” trên trang chủ
             </label>
+
+            <fieldset className="mt-4">
+              <legend className="text-sm font-medium">Loại đầu vào</legend>
+              <div className="mt-2 flex flex-wrap gap-4">
+                {INPUT_MODALITIES.map((modality) => {
+                  const checked = draft.inputTypes.includes(modality);
+                  return (
+                    <label key={modality} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        // Model luôn phải nhận ít nhất một kiểu đầu vào.
+                        disabled={checked && draft.inputTypes.length === 1}
+                        onChange={(event) => {
+                          const next = event.target.checked
+                            ? INPUT_MODALITIES.filter(
+                                (item) => item === modality || draft.inputTypes.includes(item),
+                              )
+                            : draft.inputTypes.filter((item) => item !== modality);
+                          setDraft({ ...draft, inputTypes: next.length > 0 ? next : ["text"] });
+                        }}
+                        className="size-4 rounded border-border-strong bg-surface accent-[var(--primary)]"
+                      />
+                      {modality === "text" ? "Văn bản" : "Hình ảnh"}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-xs text-muted">
+                Harness ghi thẳng vào <span className="font-mono">input</span> của pi-ai, nên model
+                chỉ nhận hình ảnh nếu khai báo ở đây.
+              </p>
+            </fieldset>
+
+            <div className="mt-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium">Mức suy luận</span>
+                <label className="flex items-center gap-2 text-sm text-muted">
+                  <input
+                    type="checkbox"
+                    checked={draft.reasoningEfforts !== null}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        reasoningEfforts: event.target.checked
+                          ? { ...DEFAULT_REASONING_EFFORTS }
+                          : null,
+                      })
+                    }
+                    className="size-4 rounded border-border-strong bg-surface accent-[var(--primary)]"
+                  />
+                  Bật suy luận
+                </label>
+              </div>
+
+              {draft.reasoningEfforts ? (
+                <div className="mt-2 space-y-2">
+                  <div className="grid grid-cols-[7.5rem_1fr_2rem] gap-2 text-[11px] text-muted">
+                    <span>Mức</span>
+                    <span>Giá trị gửi API</span>
+                    <span aria-hidden />
+                  </div>
+                  {Object.entries(draft.reasoningEfforts).map(([level, wire], index) => (
+                    <div key={index} className="grid grid-cols-[7.5rem_1fr_2rem] items-center gap-2">
+                      <Select
+                        aria-label={`Mức suy luận ${index + 1}`}
+                        value={level}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            reasoningEfforts: replaceLevel(
+                              draft.reasoningEfforts ?? {},
+                              level,
+                              event.target.value as ReasoningLevel,
+                            ),
+                          })
+                        }
+                        className="h-9 md:h-9"
+                      >
+                        {REASONING_LEVELS.map((option) => (
+                          <option
+                            key={option}
+                            value={option}
+                            disabled={
+                              option !== level &&
+                              Object.prototype.hasOwnProperty.call(
+                                draft.reasoningEfforts,
+                                option,
+                              )
+                            }
+                          >
+                            {option}
+                          </option>
+                        ))}
+                      </Select>
+                      <Input
+                        aria-label={`Giá trị gửi API cho ${level}`}
+                        value={wire ?? ""}
+                        disabled={level === "off"}
+                        placeholder={level === "off" ? "Không gửi" : level}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            reasoningEfforts: {
+                              ...draft.reasoningEfforts,
+                              [level]: event.target.value === "" ? null : event.target.value,
+                            },
+                          })
+                        }
+                        className="h-9 font-mono text-xs md:h-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = Object.fromEntries(
+                            Object.entries(draft.reasoningEfforts ?? {}).filter(
+                              ([item]) => item !== level,
+                            ),
+                          );
+                          setDraft({
+                            ...draft,
+                            reasoningEfforts: Object.keys(next).length > 0 ? next : null,
+                          });
+                        }}
+                        className="inline-flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger-bg hover:text-danger"
+                        aria-label={`Xoá mức ${level}`}
+                        title={`Xoá mức ${level}`}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const used = Object.keys(draft.reasoningEfforts ?? {});
+                      const level = REASONING_LEVELS.find((option) => !used.includes(option));
+                      if (!level) return;
+                      setDraft({
+                        ...draft,
+                        reasoningEfforts: {
+                          ...draft.reasoningEfforts,
+                          [level]: level === "off" ? null : level,
+                        },
+                      });
+                    }}
+                    disabled={Object.keys(draft.reasoningEfforts).length >= REASONING_LEVELS.length}
+                  >
+                    <Plus className="size-3.5" />
+                    Thêm mức
+                  </Button>
+                </div>
+              ) : (
+                <p className="mt-1.5 text-xs text-muted">
+                  Tắt: harness không khai báo mức nào, model không hiện lựa chọn suy luận.
+                </p>
+              )}
+            </div>
 
             {error ? <p className="mt-3 text-xs text-error-text">{error}</p> : null}
 

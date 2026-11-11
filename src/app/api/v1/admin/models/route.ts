@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit, newId, now, one, run } from "@/lib/db";
 import { fail, guard, num, readJson, str } from "@/lib/http";
-import { listModels } from "@/lib/models";
+import { listModels, serializeInputTypes, serializeReasoningEfforts } from "@/lib/models";
 import { resolveSource } from "@/lib/providers";
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,40}$/;
@@ -32,8 +32,9 @@ export async function POST(request: Request) {
     const id = newId("mdl");
     run(
       `INSERT INTO models (id, slug, name, family, vendor, context_window, max_output, input_price,
-        output_price, speed, status, description, featured, released_at, provider_id, external_id, synced_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        output_price, speed, status, description, featured, released_at, provider_id, external_id, synced_at,
+        input_types, reasoning_efforts)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       slug,
       name,
@@ -51,6 +52,8 @@ export async function POST(request: Request) {
       source.providerId,
       source.externalId,
       source.providerId ? now() : null,
+      serializeInputTypes(body.input_types),
+      serializeReasoningEfforts(body.reasoning_efforts),
     );
 
     logAudit({
