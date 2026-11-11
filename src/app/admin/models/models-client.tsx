@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Pencil, Pin, Plus, Star, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Pencil, Pin, Plus, Star, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -59,8 +59,8 @@ type Draft = Omit<
 const EMPTY: Draft = {
   slug: "",
   name: "",
-  family: "DeepSeek",
-  vendor: "DeepSeek",
+  family: "FuJue",
+  vendor: "FuJue",
   contextWindow: 131072,
   maxOutput: 16384,
   inputPrice: 0.28,
@@ -129,6 +129,8 @@ export function ModelsClient({
   const [pending, setPending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ModelView | null>(null);
   const [sourceFilter, setSourceFilter] = useState("all");
+  /** Mở nhóm trường ít dùng: giá, ngữ cảnh, năng lực, mức suy luận. */
+  const [advanced, setAdvanced] = useState(false);
 
   const manualCount = models.filter((model) => !model.providerId).length;
   const visible =
@@ -138,11 +140,13 @@ export function ModelsClient({
 
   function openCreate() {
     setError(null);
+    setAdvanced(false);
     setDraft({ ...EMPTY, providerId: providers[0]?.id ?? "" });
   }
 
   function openEdit(model: ModelView) {
     setError(null);
+    setAdvanced(true);
     setDraft({
       ...model,
       providerId: model.providerId ?? "",
@@ -374,7 +378,10 @@ export function ModelsClient({
                   </td>
                   <td className="hidden px-4 py-3 lg:table-cell">
                     {model.providerId ? (
-                      <Badge tone="brand">{model.source}</Badge>
+                      <Badge tone="brand">
+                        {providers.find((provider) => provider.id === model.providerId)?.name ??
+                          model.source}
+                      </Badge>
                     ) : (
                       <Badge tone="warning">Chưa gắn nguồn</Badge>
                     )}
@@ -434,14 +441,40 @@ export function ModelsClient({
       </section>
 
       {draft ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 p-4 sm:items-center">
           <form
             onSubmit={save}
-            className="my-auto w-full max-w-lg rounded-2xl border border-border bg-surface-overlay p-5 shadow-modal"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setDraft(null);
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="model-dialog-title"
+            className="flex max-h-[min(100dvh-2rem,48rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-modal"
           >
-            <h2 className="text-base font-medium">{draft.id ? "Sửa model" : "Thêm model"}</h2>
+            <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+              <div className="min-w-0">
+                <h2 id="model-dialog-title" className="text-base font-medium">
+                  {draft.id ? "Sửa model" : "Thêm model"}
+                </h2>
+                <p className="mt-1 text-sm/6 text-muted text-pretty">
+                  {draft.id
+                    ? "Cập nhật thông tin, giá và năng lực của model."
+                    : "Model thuộc một nguồn. Muốn lấy model có sẵn, dùng Đồng bộ ở khung Nguồn model."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDraft(null)}
+                aria-label="Đóng"
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-item-hover hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </header>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              <div className="grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Field
                   label="Nguồn model"
@@ -449,7 +482,7 @@ export function ModelsClient({
                   hint={
                     providers.length === 0
                       ? "Chưa có nguồn nào. Thêm nguồn ở khung phía trên trước khi thêm model."
-                      : "Mọi model đều thuộc một nguồn. Lần đồng bộ sau sẽ cập nhật giá, ngữ cảnh và cảnh báo lỗi theo nguồn đó."
+                      : "Mọi model đều thuộc một nguồn. Đồng bộ nguồn sẽ làm mới giá và ngữ cảnh của model đã chọn."
                   }
                 >
                   <Select
@@ -506,6 +539,35 @@ export function ModelsClient({
                   placeholder="DeepSeek V4"
                 />
               </Field>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAdvanced((current) => !current)}
+                aria-expanded={advanced}
+                className="mt-4 flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-surface-subtle px-3 py-2.5 text-left transition-colors hover:bg-item-hover"
+              >
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <ChevronDown
+                    className={cn("size-4 text-muted transition-transform", advanced && "rotate-180")}
+                  />
+                  Tuỳ chọn nâng cao
+                </span>
+                <span className="hidden text-xs text-muted sm:block">
+                  Giá, ngữ cảnh, năng lực
+                </span>
+              </button>
+
+              <div
+                className={cn(
+                  "grid transition-[grid-template-rows] duration-200",
+                  advanced ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                )}
+                inert={!advanced}
+              >
+                <div className="overflow-hidden">
+                  <div className="mt-3 space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Họ model" htmlFor="family">
                 <Input
                   id="family"
@@ -766,17 +828,28 @@ export function ModelsClient({
               )}
             </div>
 
-            {error ? <p className="mt-3 text-xs text-error-text">{error}</p> : null}
-
-            <div className="mt-5 flex justify-end gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setDraft(null)}>
-                Huỷ
-              </Button>
-              <button type="submit" disabled={pending} className={buttonClass("primary", "sm")}>
-                {pending ? <Loader2 className="size-3.5 animate-spin" /> : null}
-                Lưu model
-              </button>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            <footer className="flex flex-col-reverse gap-2 border-t border-border px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-error-text">{error ?? "\u00a0"}</p>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={() => setDraft(null)}>
+                  Huỷ
+                </Button>
+                <button
+                  type="submit"
+                  disabled={pending}
+                  aria-busy={pending || undefined}
+                  className={cn(buttonClass("primary", "sm"), "relative")}
+                >
+                  <span className={pending ? "invisible" : undefined}>Lưu model</span>
+                  {pending ? <Loader2 className="absolute size-3.5 animate-spin" /> : null}
+                </button>
+              </div>
+            </footer>
           </form>
         </div>
       ) : null}

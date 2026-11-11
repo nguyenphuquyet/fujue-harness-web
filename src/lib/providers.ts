@@ -203,6 +203,24 @@ type UpstreamModel = {
 
 export type SyncResult = { total: number; added: number; updated: number; removed: number };
 
+/** Một model đọc từ nguồn, chưa ghi vào DB; dùng cho bước chọn model. */
+export type UpstreamModelView = {
+  externalId: string;
+  name: string;
+  vendor: string;
+  contextWindow: number;
+  maxOutput: number;
+  inputPrice: number;
+  outputPrice: number;
+  description: string;
+  released: number | null;
+  /** Model đã có trong danh mục của site. */
+  imported: boolean;
+};
+
+/** Giá trị đã chuẩn hoá để ghi vào bảng `models`. */
+type UpstreamDescription = Omit<UpstreamModelView, "imported">;
+
 /** Đọc giá theo token của OpenRouter rồi đổi sang USD trên 1 triệu token. */
 function pricePerMillion(value: unknown): number | null {
   if (typeof value !== "number" && typeof value !== "string") return null;
@@ -268,12 +286,75 @@ async function fetchUpstream(provider: ProviderRow): Promise<UpstreamModel[]> {
   return list.filter((item): item is UpstreamModel => Boolean(item) && typeof item === "object");
 }
 
+/** Chuẩn hoá một dòng của `GET /models` thành giá trị ghi được vào bảng `models`. */
+function describeUpstream(
+  row: UpstreamModel,
+  provider: ProviderRow,
+): UpstreamDescription | null {
+  const externalId = text(row.id);
+  if (!externalId) return null;
+
+  const vendor = text(row.owned_by) ?? provider.name;
+  return {
+    externalId,
+    name: text(row.name) ?? prettyName(externalId),
+    vendor,
+    contextWindow:
+      positiveInt(row.context_length) ?? positiveInt(row.top_provider?.context_length) ?? 131_072,
+    maxOutput: positiveInt(row.max_completion_tokens) ?? 16_384,
+    inputPrice: pricePerMillion(row.pricing?.prompt) ?? 0,
+    outputPrice: pricePerMillion(row.pricing?.completion) ?? 0,
+    description: text(row.description) ?? `Model nhập từ ${provider.name}.`,
+    released: positiveInt(row.created),
+  };
+}
+
 /**
- * Kéo danh mục model từ nguồn: thêm model mới, cập nhật model đã có, xoá model
- * đã biến mất khỏi nguồn. Chạy trong một transaction để bảng không ở trạng thái
- * nửa vời khi một dòng lỗi.
+ * Đọc danh mục của nguồn để quản trị viên chọn model cần đưa vào site. Không
+ * ghi gì vào DB: nguồn chỉ được đọc, danh mục công khai giữ nguyên.
  */
-export async function syncProvider(id: string): Promise<SyncResult | { error: string; status: number }> {
+export async function listUpstreamModels(
+  id: string,
+): Promise<{ models: UpstreamModelView[] } | { error: string; status: number }> {
+  const provider = one<ProviderRow>("SELECT * FROM providers WHERE id = ?", id);
+  if (!provider) return { error: "Không tìm thấy nguồn model.", status: 404 };
+
+  let rows: UpstreamModel[];
+  try {
+    rows = await fetchUpstream(provider);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { error: message, status: 502 };
+  }
+
+  const imported = new Set(
+    all<{ external_id: string | null }>(
+      "SELECT external_id FROM models WHERE provider_id = ? AND external_id IS NOT NULL",
+      id,
+    ).map((row) => row.external_id!),
+  );
+
+  const models: UpstreamModelView[] = [];
+  for (const row of rows) {
+    const described = describeUpstream(row, provider);
+    if (!described) continue;
+    models.push({ ...described, imported: imported.has(described.externalId) });
+  }
+  models.sort((a, b) => a.name.localeCompare(b.name, "vi"));
+
+  return { models };
+}
+
+/**
+ * Đưa model đã chọn từ nguồn vào danh mục: thêm model mới, cập nhật model đã
+ * có, và gỡ model bị bỏ chọn khỏi nguồn đó. `selected` là danh sách mã model
+ * bên nguồn; `null` nghĩa là giữ nguyên lựa chọn hiện tại và chỉ làm mới giá,
+ * ngữ cảnh. Chạy trong một transaction để bảng không ở trạng thái nửa vời.
+ */
+export async function syncProvider(
+  id: string,
+  selected: string[] | null = null,
+): Promise<SyncResult | { error: string; status: number }> {
   const provider = one<ProviderRow>("SELECT * FROM providers WHERE id = ?", id);
   if (!provider) return { error: "Không tìm thấy nguồn model.", status: 404 };
 
@@ -291,26 +372,29 @@ export async function syncProvider(id: string): Promise<SyncResult | { error: st
     return { error: message, status: 502 };
   }
 
+  const catalog = new Map<string, UpstreamDescription>();
+  for (const row of rows) {
+    const described = describeUpstream(row, provider);
+    if (described) catalog.set(described.externalId, described);
+  }
+
+  // Không truyền lựa chọn thì giữ đúng những model đang gắn với nguồn.
+  const keep = new Set(
+    selected ??
+      all<{ external_id: string | null }>(
+        "SELECT external_id FROM models WHERE provider_id = ? AND external_id IS NOT NULL",
+        id,
+      ).map((row) => row.external_id!),
+  );
+
   const db = getDb();
   const result: SyncResult = { total: 0, added: 0, updated: 0, removed: 0 };
-  const keep = new Set<string>();
 
   db.exec("BEGIN");
   try {
-    for (const row of rows) {
-      const externalId = text(row.id);
-      if (!externalId) continue;
-      keep.add(externalId);
-
-      const contextWindow =
-        positiveInt(row.context_length) ?? positiveInt(row.top_provider?.context_length) ?? 131_072;
-      const maxOutput = positiveInt(row.max_completion_tokens) ?? 16_384;
-      const inputPrice = pricePerMillion(row.pricing?.prompt) ?? 0;
-      const outputPrice = pricePerMillion(row.pricing?.completion) ?? 0;
-      const name = text(row.name) ?? prettyName(externalId);
-      const vendor = text(row.owned_by) ?? provider.name;
-      const description = text(row.description) ?? `Model nhập từ ${provider.name}.`;
-      const released = positiveInt(row.created);
+    for (const externalId of keep) {
+      const described = catalog.get(externalId);
+      if (!described) continue;
 
       const existing = one<{ id: string }>(
         "SELECT id FROM models WHERE provider_id = ? AND external_id = ?",
@@ -323,14 +407,14 @@ export async function syncProvider(id: string): Promise<SyncResult | { error: st
           `UPDATE models SET name = ?, family = ?, vendor = ?, context_window = ?, max_output = ?,
                   input_price = ?, output_price = ?, description = ?, synced_at = ?
             WHERE id = ?`,
-          name,
-          vendor,
-          vendor,
-          contextWindow,
-          maxOutput,
-          inputPrice,
-          outputPrice,
-          description,
+          described.name,
+          described.vendor,
+          described.vendor,
+          described.contextWindow,
+          described.maxOutput,
+          described.inputPrice,
+          described.outputPrice,
+          described.description,
           now(),
           existing.id,
         );
@@ -344,25 +428,25 @@ export async function syncProvider(id: string): Promise<SyncResult | { error: st
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'balanced', 'stable', ?, 0, ?, ?, ?, ?)`,
           newId("mdl"),
           slug,
-          name,
-          vendor,
-          vendor,
-          contextWindow,
-          maxOutput,
-          inputPrice,
-          outputPrice,
-          description,
-          released ? released * 1000 : now(),
+          described.name,
+          described.vendor,
+          described.vendor,
+          described.contextWindow,
+          described.maxOutput,
+          described.inputPrice,
+          described.outputPrice,
+          described.description,
+          described.released ? described.released * 1000 : now(),
           id,
           externalId,
           now(),
         );
         result.added += 1;
       }
+      result.total += 1;
     }
 
-    // Chỉ gỡ model do chính lần đồng bộ trước nhập vào. Model gắn tay vào nguồn
-    // không có mã bên nguồn nên không bao giờ bị coi là đã biến mất.
+    // Model gắn tay vào nguồn không có mã bên nguồn nên không bao giờ bị gỡ ở đây.
     const stale = all<{ id: string; external_id: string | null }>(
       "SELECT id, external_id FROM models WHERE provider_id = ?",
       id,
@@ -373,7 +457,6 @@ export async function syncProvider(id: string): Promise<SyncResult | { error: st
       result.removed += 1;
     }
 
-    result.total = keep.size;
     pruneDefaultModel();
     run(
       "UPDATE providers SET last_synced_at = ?, last_error = NULL, last_summary = ? WHERE id = ?",

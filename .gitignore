@@ -4,6 +4,7 @@ out/
 data/
 dist/
 .layout/
+.tmp/
 deploy/ecosystem.local.cjs
 .env
 .env.local
