@@ -375,6 +375,7 @@ export default function DocsPage() {
   "models": [
     {
       "id": "deepseek-v4",
+      "name": "DeepSeek V4",
       "context_window": 262144,
       "default": true,
       "source": {

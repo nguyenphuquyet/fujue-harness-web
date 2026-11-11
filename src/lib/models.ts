@@ -54,6 +54,8 @@ export type ModelSource = {
 export type PublicModel = {
   /** Slug dùng làm `model` trong mọi lời gọi tới harness. */
   id: string;
+  /** Tên hiển thị của model, dùng trong bộ chọn model của harness. */
+  name: string;
   object: "model";
   owned_by: string;
   context_window: number;
@@ -81,6 +83,7 @@ export function listPublicModels(): PublicModel[] {
       ORDER BY m.featured DESC, m.name ASC`,
   ).map((model) => ({
     id: model.slug,
+    name: model.name,
     object: "model" as const,
     owned_by: model.vendor,
     context_window: model.context_window,
