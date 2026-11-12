@@ -49,6 +49,26 @@ export function run(
   return stmt.run(...params) as { changes: number; lastInsertRowid: number | bigint };
 }
 
+/**
+ * Chạy một nhóm ghi trong cùng giao dịch. Dùng cho nghiệp vụ phải khớp nhau, ví
+ * dụ trừ số dư và ghi sổ ví: hoặc cả hai cùng xong, hoặc không dòng nào đổi.
+ *
+ * @param handler Các câu lệnh cần chạy trong một giao dịch.
+ * @returns Giá trị handler trả về.
+ */
+export function transaction<T>(handler: () => T): T {
+  const db = getDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const result = handler();
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 export function now(): number {
   return Date.now();
 }
@@ -82,6 +102,7 @@ function migrate(db: DatabaseSync): void {
       role          TEXT NOT NULL DEFAULT 'user',
       plan          TEXT NOT NULL DEFAULT 'free',
       status        TEXT NOT NULL DEFAULT 'active',
+      balance_vnd   INTEGER NOT NULL DEFAULT 0,
       created_at    INTEGER NOT NULL,
       last_login_at INTEGER
     );
@@ -145,7 +166,44 @@ function migrate(db: DatabaseSync): void {
       requests   INTEGER NOT NULL DEFAULT 0,
       tokens_in  INTEGER NOT NULL DEFAULT 0,
       tokens_out INTEGER NOT NULL DEFAULT 0,
+      cost_vnd   INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (user_id, day)
+    );
+
+    CREATE TABLE IF NOT EXISTS usage_model_daily (
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      day        TEXT NOT NULL,
+      model_slug TEXT NOT NULL,
+      requests   INTEGER NOT NULL DEFAULT 0,
+      tokens_in  INTEGER NOT NULL DEFAULT 0,
+      tokens_out INTEGER NOT NULL DEFAULT 0,
+      cost_vnd   INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (user_id, day, model_slug)
+    );
+
+    CREATE TABLE IF NOT EXISTS topups (
+      id                 TEXT PRIMARY KEY,
+      user_id            TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      code               TEXT NOT NULL UNIQUE,
+      amount_vnd         INTEGER NOT NULL,
+      status             TEXT NOT NULL DEFAULT 'pending',
+      note               TEXT,
+      created_at         INTEGER NOT NULL,
+      expires_at         INTEGER NOT NULL,
+      confirmed_at       INTEGER,
+      confirmed_by       TEXT,
+      confirmed_by_email TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS wallet_ledger (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind          TEXT NOT NULL,
+      amount_vnd    INTEGER NOT NULL,
+      balance_after INTEGER NOT NULL,
+      ref           TEXT,
+      detail        TEXT,
+      created_at    INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS devices (
@@ -179,14 +237,15 @@ function migrate(db: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
     CREATE INDEX IF NOT EXISTS idx_keys_user ON api_keys(user_id);
     CREATE INDEX IF NOT EXISTS idx_usage_user ON usage_daily(user_id);
+    CREATE INDEX IF NOT EXISTS idx_usage_model_user ON usage_model_daily(user_id, day);
+    CREATE INDEX IF NOT EXISTS idx_topups_user ON topups(user_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_topups_status ON topups(status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_ledger_user ON wallet_ledger(user_id, created_at);
   `);
 
   // Model nhập từ API bên ngoài: giữ nguồn và mã gốc để lần đồng bộ sau cập nhật
   // đúng dòng thay vì tạo bản trùng.
-  const columns = new Set(
-    (db.prepare("PRAGMA table_info(models)").all() as Array<{ name: string }>).map((row) => row.name),
-  );
-  const additions = [
+  addColumns(db, "models", [
     ["provider_id", "TEXT"],
     ["external_id", "TEXT"],
     ["synced_at", "INTEGER"],
@@ -194,9 +253,20 @@ function migrate(db: DatabaseSync): void {
     // Model cũ mặc định chỉ nhận văn bản và không khai báo suy luận.
     ["input_types", `TEXT NOT NULL DEFAULT '["text"]'`],
     ["reasoning_efforts", "TEXT"],
-  ] as const;
+  ]);
+
+  // Ví trả trước thêm sau khi site đã chạy: tài khoản cũ bắt đầu với số dư 0.
+  addColumns(db, "users", [["balance_vnd", "INTEGER NOT NULL DEFAULT 0"]]);
+  addColumns(db, "usage_daily", [["cost_vnd", "INTEGER NOT NULL DEFAULT 0"]]);
+}
+
+/** Thêm cột còn thiếu vào bảng đã tồn tại; SQLite không có `ADD COLUMN IF NOT EXISTS`. */
+function addColumns(db: DatabaseSync, table: string, additions: ReadonlyArray<readonly [string, string]>): void {
+  const columns = new Set(
+    (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((row) => row.name),
+  );
   for (const [name, definition] of additions) {
-    if (!columns.has(name)) db.exec(`ALTER TABLE models ADD COLUMN ${name} ${definition}`);
+    if (!columns.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
   }
 }
 
@@ -323,8 +393,8 @@ function seed(db: DatabaseSync): void {
     // phát triển; đặt FUJUE_SEED_DEMO=0 khi chạy công khai.
     const withDemo = process.env.FUJUE_SEED_DEMO !== "0";
     const insert = db.prepare(
-      `INSERT INTO users (id, email, name, password_hash, role, plan, status, created_at, last_login_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, email, name, password_hash, role, plan, status, balance_vnd, created_at, last_login_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     insert.run(
       newId("usr"),
@@ -334,6 +404,7 @@ function seed(db: DatabaseSync): void {
       "admin",
       "team",
       "active",
+      1_284_000,
       createdAt,
       now() - 1000 * 60 * 12,
     );
@@ -346,6 +417,7 @@ function seed(db: DatabaseSync): void {
         "user",
         "pro",
         "active",
+        128_400,
         now() - 1000 * 60 * 60 * 24 * 24,
         now() - 1000 * 60 * 60 * 27,
       );
@@ -357,6 +429,7 @@ function seed(db: DatabaseSync): void {
         "user",
         "free",
         "suspended",
+        45_000,
         now() - 1000 * 60 * 60 * 24 * 9,
         now() - 1000 * 60 * 60 * 24 * 9,
       );
@@ -400,14 +473,113 @@ function seed(db: DatabaseSync): void {
       );
 
       const usage = db.prepare(
-        `INSERT INTO usage_daily (user_id, day, requests, tokens_in, tokens_out) VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO usage_daily (user_id, day, requests, tokens_in, tokens_out, cost_vnd)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       );
+      const usageByModel = db.prepare(
+        `INSERT INTO usage_model_daily (user_id, day, model_slug, requests, tokens_in, tokens_out, cost_vnd)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      );
+      const seedSlugs = ["deepseek-v4", "kimi-k2"];
+      const costVnd = (tokensIn: number, tokensOut: number): number =>
+        Math.ceil(((tokensIn / 1_000_000) * 0.28 + (tokensOut / 1_000_000) * 1.12) * 26_500);
+      const slugOf = (index: number): string => seedSlugs[index % seedSlugs.length];
       for (let i = 13; i >= 0; i -= 1) {
         const day = new Date(now() - i * 86400000).toISOString().slice(0, 10);
         const base = 120 + Math.round(Math.sin(i / 1.7) * 46) + (13 - i) * 9;
-        usage.run(admin.id, day, base, base * 1420, base * 380);
-        usage.run(demo.id, day, Math.round(base * 0.42), Math.round(base * 640), Math.round(base * 190));
+        const adminIn = base * 1420;
+        const adminOut = base * 380;
+        const demoIn = Math.round(base * 640);
+        const demoOut = Math.round(base * 190);
+        usage.run(admin.id, day, base, adminIn, adminOut, costVnd(adminIn, adminOut));
+        usage.run(demo.id, day, Math.round(base * 0.42), demoIn, demoOut, costVnd(demoIn, demoOut));
+        usageByModel.run(
+          admin.id,
+          day,
+          slugOf(i),
+          base,
+          adminIn,
+          adminOut,
+          costVnd(adminIn, adminOut),
+        );
+        usageByModel.run(
+          demo.id,
+          day,
+          slugOf(i + 1),
+          Math.round(base * 0.42),
+          demoIn,
+          demoOut,
+          costVnd(demoIn, demoOut),
+        );
       }
+
+      // Lịch sử nạp tiền mẫu: một lệnh đang chờ ở trang Nạp tiền và hai lệnh đã cộng.
+      const topupStmt = db.prepare(
+        `INSERT INTO topups (id, user_id, code, amount_vnd, status, note, created_at, expires_at,
+                            confirmed_at, confirmed_by, confirmed_by_email)
+         VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
+      );
+      topupStmt.run(
+        newId("top"),
+        demo.id,
+        "FJ-2604-0193",
+        200_000,
+        "pending",
+        now() - 1000 * 60 * 3,
+        now() + 1000 * 60 * 12,
+        null,
+        null,
+        null,
+      );
+      topupStmt.run(
+        newId("top"),
+        demo.id,
+        "FJ-2604-0181",
+        500_000,
+        "paid",
+        now() - 1000 * 60 * 60 * 24 * 3,
+        now() - 1000 * 60 * 60 * 24 * 3 + 900_000,
+        now() - 1000 * 60 * 60 * 24 * 3 + 240_000,
+        admin.id,
+        adminEmail,
+      );
+      topupStmt.run(
+        newId("top"),
+        demo.id,
+        "FJ-2604-0166",
+        100_000,
+        "expired",
+        now() - 1000 * 60 * 60 * 24 * 9,
+        now() - 1000 * 60 * 60 * 24 * 9 + 900_000,
+        null,
+        null,
+        null,
+      );
+
+      const ledger = db.prepare(
+        `INSERT INTO wallet_ledger (id, user_id, kind, amount_vnd, balance_after, ref, detail, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      );
+      ledger.run(
+        newId("wlt"),
+        demo.id,
+        "topup",
+        500_000,
+        628_400,
+        "FJ-2604-0181",
+        "Nạp tiền · FJ-2604-0181",
+        now() - 1000 * 60 * 60 * 24 * 3 + 240_000,
+      );
+      ledger.run(
+        newId("wlt"),
+        demo.id,
+        "usage",
+        -500_000,
+        128_400,
+        "deepseek-v4",
+        "Chi tiêu model 30 ngày",
+        now() - 1000 * 60 * 60 * 24,
+      );
     }
 
     const audit = db.prepare(

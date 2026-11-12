@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AuthError } from "./auth";
+import { ApiError } from "./errors";
 
 export function json(data: unknown, init?: ResponseInit): NextResponse {
   return NextResponse.json(data, init);
@@ -16,7 +16,7 @@ export async function guard<T>(handler: () => Promise<T>): Promise<T | NextRespo
   try {
     return await handler();
   } catch (error) {
-    if (error instanceof AuthError) return fail(error.status, error.message);
+    if (error instanceof ApiError) return fail(error.status, error.message, error.field);
     console.error("[fujue-api]", error);
     return fail(500, "Máy chủ gặp lỗi. Thử lại sau ít phút.");
   }

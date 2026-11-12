@@ -47,11 +47,13 @@ khoản quản trị lấy từ `FUJUE_ADMIN_EMAIL` và `FUJUE_ADMIN_PASSWORD`, 
 | `/pricing` | Ba gói Miễn phí / Pro / Đội nhóm |
 | `/login`, `/register` | Đăng nhập, tạo tài khoản |
 | `/device` | Duyệt mã thiết bị do app desktop yêu cầu |
-| `/dashboard` | Tổng quan, hạn mức, khoá API, phiên |
+| `/dashboard` | Tổng quan, ví, hạn mức, khoá API, phiên |
+| `/dashboard/models` | Danh mục model đang phát hành, giá, kiểu nhận, mức suy luận |
+| `/dashboard/billing` | Nạp tiền bằng VietQR, lịch sử lệnh nạp |
 | `/dashboard/keys` | Tạo/thu hồi khoá API (`fj_live_…`) |
 | `/dashboard/sessions` | Các phiên đăng nhập của tài khoản |
 | `/admin` | Tổng quan quản trị, nhật ký gần đây |
-| `/admin/users` | Đổi gói, vai trò, tạm khoá, xoá người dùng |
+| `/admin/users` | Số dư, mức dùng, xác nhận lệnh nạp, đổi gói/vai trò, tạm khoá |
 | `/admin/models` | Nguồn model + danh mục model |
 | `/admin/logs` | Nhật ký thao tác |
 
@@ -140,6 +142,36 @@ Authorization: Bearer fj_live_…
    của nguồn; model chưa gắn nguồn hoặc nguồn đang tắt trả lỗi rõ ràng.
 4. Trả nguyên luồng về cho harness, đồng thời cộng dồn lượt gọi và token vào `usage_daily`
    (SSE lấy từ `usage` của chunk cuối, nên bật `stream_options.include_usage`).
+5. Tính tiền theo giá niêm yết của model và trừ vào ví, ghi sổ `wallet_ledger`. Model giá 0 bỏ qua
+   bước này; model có giá trả `402 insufficient_balance` khi ví đã hết tiền.
+
+## Ví trả trước và nạp tiền
+
+Ví tính bằng đồng, không có cổng thanh toán. Người dùng tạo lệnh nạp ở `/dashboard/billing`, quét
+VietQR để chuyển khoản, quản trị viên đối chiếu sao kê rồi bấm **Đã nhận tiền** ở `/admin/users`.
+
+- Giá model là USD/1 triệu token; mỗi lượt quy đổi sang đồng, làm tròn lên tới đồng. Tỷ giá đổi
+  bằng `FUJUE_VND_PER_USD` (mặc định `26500`).
+- Mệnh giá gợi ý 50.000 / 100.000 / 200.000 / 500.000 ₫, hoặc nhập tay từ 20.000 ₫ đến 50.000.000 ₫
+  (bội số 1.000 ₫). Mỗi tài khoản chỉ có một lệnh chờ; tạo lệnh mới sẽ huỷ lệnh cũ.
+- Lệnh hết hạn sau 15 phút. Xác nhận cộng đúng số tiền vào ví trong cùng transaction với cập nhật
+  lệnh; từ chối chỉ đổi trạng thái, không cộng tiền.
+- Sổ `wallet_ledger` ghi mọi thay đổi: nạp tiền, trừ tiền theo lượt gọi, quản trị viên điều chỉnh tay.
+- Thiếu cấu hình nhận tiền thì nút tạo lệnh tắt và trang báo rõ. Đặt trong `deploy/ecosystem.local.cjs`:
+
+```js
+module.exports = {
+  env: {
+    FUJUE_ADMIN_EMAIL: "…",
+    FUJUE_ADMIN_PASSWORD: "…",
+    FUJUE_BANK_BIN: "970436",              // mã BIN ngân hàng cho VietQR
+    FUJUE_BANK_NAME: "Vietcombank",
+    FUJUE_BANK_ACCOUNT: "0123456789",
+    FUJUE_BANK_ACCOUNT_NAME: "NGUYEN PHU QUYET",
+    FUJUE_VND_PER_USD: "26500",
+  },
+};
+```
 
 ## Khoá API
 
@@ -177,8 +209,9 @@ npm run fujue -- logout
 - Giao diện chỉ có **một bảng màu sáng**: token ở `src/app/globals.css` (`:root` + `@theme inline`).
   Màu dùng trong utility phải khai báo ở namespace `--color-*`. Thẻ terminal ở trang chủ giữ nền
   tối bằng phạm vi `.terminal-card`.
-- Client component không được import `@/lib/db`, `@/lib/usage`, `@/lib/models` (kéo `node:sqlite`
-  vào bundle trình duyệt). Dùng `@/lib/format` cho hàm định dạng thuần.
+- Client component không được import `@/lib/db`, `@/lib/usage`, `@/lib/models`, `@/lib/wallet`
+  (kéo `node:sqlite` vào bundle trình duyệt). Dùng `@/lib/format` và `@/lib/billing` cho hằng số
+  và hàm định dạng thuần.
 - `npm run typecheck`, `npm run check:layout` (tràn ngang + ảnh chụp ở 375/768/1280px),
   `npm run shots` (chụp toàn bộ trang).
 - `scripts/shot.mjs --url /admin/models --login admin@fujue.dev:Admin@12345 --click "text=Thêm model"`
@@ -213,6 +246,10 @@ pm2 start ecosystem.config.cjs && pm2 save
 DB dùng chế độ WAL nên bản sao phải gồm cả `fujue.db-wal` và `fujue.db-shm` — chép riêng
 `fujue.db` lúc app còn chạy sẽ mất giao dịch gần nhất.
 
+Bản mới tự tạo bảng ví (`topups`, `wallet_ledger`, `usage_model_daily`) và thêm cột
+`users.balance_vnd`, `usage_daily.cost_vnd` khi khởi động. Tài khoản cũ bắt đầu với số dư 0; model
+miễn phí vẫn chạy, model có giá chờ quản trị viên cộng tiền ở `/admin/users`.
+
 `deploy/ecosystem.config.cjs` đặt `PORT=3145`, `HOSTNAME=0.0.0.0`, đường dẫn SQLite và các biến
 môi trường chung, nên sửa file này khi đổi miền. Tài khoản quản trị đầu tiên và mọi giá trị riêng
 của máy chủ nằm trong `deploy/ecosystem.local.cjs` cùng thư mục — file này bị `.gitignore` chặn:
@@ -235,4 +272,5 @@ Muốn xoá dữ liệu để tạo lại từ đầu: `pm2 stop fujue-web`, xo�
 - Nguồn tạo lúc khởi tạo trỏ tới `FUJUE_SEED_PROVIDER_URL` (mặc định `https://api.deepseek.com/v1`)
   và chưa có khoá — dán khoá của nguồn ở `/admin/models` hoặc đồng bộ một nguồn khác rồi ghim model
   mặc định. Cổng model chuyển tiếp sang nguồn đó, nên đừng trỏ nguồn về chính site.
-- Chi phí hiển thị ở dashboard là ước tính theo giá tham chiếu, chưa đối chiếu hoá đơn của nguồn.
+- Chi phí ở dashboard là tiền thật đã trừ khỏi ví, tính từ token nguồn báo về. Lượt gọi không có
+  `usage` (nguồn không trả token) không bị trừ tiền.

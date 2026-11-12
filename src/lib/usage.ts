@@ -5,11 +5,13 @@ export type UsageRow = {
   requests: number;
   tokens_in: number;
   tokens_out: number;
+  cost_vnd: number;
 };
 
 export function usageLastDays(userId: string, days = 14): UsageRow[] {
   const rows = all<UsageRow>(
-    "SELECT day, requests, tokens_in, tokens_out FROM usage_daily WHERE user_id = ? ORDER BY day DESC LIMIT ?",
+    `SELECT day, requests, tokens_in, tokens_out, cost_vnd
+       FROM usage_daily WHERE user_id = ? ORDER BY day DESC LIMIT ?`,
     userId,
     days,
   );
@@ -21,22 +23,49 @@ export function usageTotals(userId: string): UsageRow {
     `SELECT COALESCE(SUM(requests), 0) AS requests,
             COALESCE(SUM(tokens_in), 0) AS tokens_in,
             COALESCE(SUM(tokens_out), 0) AS tokens_out,
+            COALESCE(SUM(cost_vnd), 0) AS cost_vnd,
             '' AS day
        FROM usage_daily WHERE user_id = ?`,
     userId,
   );
-  return row ?? { day: "", requests: 0, tokens_in: 0, tokens_out: 0 };
+  return row ?? { day: "", requests: 0, tokens_in: 0, tokens_out: 0, cost_vnd: 0 };
 }
 
-/** Giá tham chiếu cho phần ước tính chi phí: $0,28 vào / $1,12 ra mỗi triệu token. */
-export const ESTIMATE_INPUT_PRICE = 0.28;
-export const ESTIMATE_OUTPUT_PRICE = 1.12;
+/** Chi tiêu thật của N ngày gần nhất, cộng từ số tiền đã trừ khỏi ví. */
+export function usageCostLastDays(userId: string, days = 30): number {
+  const since = new Date(Date.now() - (days - 1) * 86_400_000).toISOString().slice(0, 10);
+  const row = one<{ total: number }>(
+    "SELECT COALESCE(SUM(cost_vnd), 0) AS total FROM usage_daily WHERE user_id = ? AND day >= ?",
+    userId,
+    since,
+  );
+  return row?.total ?? 0;
+}
 
-export function estimateCost(totals: UsageRow): number {
-  return (
-    (totals.tokens_in / 1_000_000) * ESTIMATE_INPUT_PRICE +
-    (totals.tokens_out / 1_000_000) * ESTIMATE_OUTPUT_PRICE
+export type ModelUsageRow = {
+  model_slug: string;
+  requests: number;
+  tokens_in: number;
+  tokens_out: number;
+  cost_vnd: number;
+};
+
+/** Số liệu theo từng model để trang Model so sánh mức dùng và chi phí. */
+export function usageByModel(userId: string, days = 30): ModelUsageRow[] {
+  const since = new Date(Date.now() - (days - 1) * 86_400_000).toISOString().slice(0, 10);
+  return all<ModelUsageRow>(
+    `SELECT model_slug,
+            COALESCE(SUM(requests), 0) AS requests,
+            COALESCE(SUM(tokens_in), 0) AS tokens_in,
+            COALESCE(SUM(tokens_out), 0) AS tokens_out,
+            COALESCE(SUM(cost_vnd), 0) AS cost_vnd
+       FROM usage_model_daily
+      WHERE user_id = ? AND day >= ?
+      GROUP BY model_slug
+      ORDER BY requests DESC`,
+    userId,
+    since,
   );
 }
 
-export { formatCost, formatDateTime, formatNumber, formatRelative } from "./format";
+export { formatCost, formatDateTime, formatNumber, formatRelative, formatTokens, formatVnd } from "./format";

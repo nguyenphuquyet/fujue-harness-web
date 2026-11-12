@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { all, hashPassword, newId, now, one, run, verifyPassword } from "./db";
+import { ApiError } from "./errors";
 
 export const SESSION_COOKIE = "fujue_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -112,13 +113,7 @@ export async function requireAdmin(): Promise<PublicUser> {
   return user;
 }
 
-export class AuthError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
+export class AuthError extends ApiError {}
 
 export type AuthResult =
   | { ok: true; user: PublicUser; token: string }

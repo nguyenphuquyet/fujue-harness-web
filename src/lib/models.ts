@@ -160,22 +160,4 @@ export function pruneDefaultModel(): void {
   }
 }
 
-export function formatTokens(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
-  if (value >= 1000) return `${Math.round(value / 1000)}K`;
-  return String(value);
-}
-
-/**
- * Giá trên 1 triệu token. Model nhập từ nguồn ngoài có thể không kèm giá, khi đó
- * giá trị 0 nghĩa là "chưa niêm yết" chứ không phải miễn phí.
- */
-export function formatPricePerMillion(value: number): string {
-  if (value === 0) return "—";
-  if (value < 0.1) return `$${value.toFixed(3)}`;
-  return `$${value.toFixed(2)}`;
-}
-
-export function formatVnd(value: number): string {
-  return `${value.toLocaleString("vi-VN")} ₫`;
-}
+export { formatPricePerMillion, formatTokens, formatVnd } from "./format";

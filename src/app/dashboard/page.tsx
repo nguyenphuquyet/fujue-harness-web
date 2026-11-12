@@ -5,21 +5,23 @@ import {
   Check,
   ChevronRight,
   Circle,
+  Cpu,
   Download,
   KeyRound,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import { currentUser } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { listKeys } from "@/lib/keys";
 import {
-  estimateCost,
-  formatCost,
-  formatNumber,
-  formatRelative,
-  usageLastDays,
-  usageTotals,
-} from "@/lib/usage";
+  getDefaultModelSlug,
+  listModels,
+  parseInputTypes,
+  parseReasoningEfforts,
+} from "@/lib/models";
+import { formatNumber, formatRelative, formatTokens, formatVnd, usageLastDays } from "@/lib/usage";
+import { walletSummary } from "@/lib/wallet";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 
@@ -37,11 +39,22 @@ export default async function DashboardPage() {
 
   const keys = listKeys(user.id).filter((key) => key.revoked_at === null);
   const usage = usageLastDays(user.id, 14);
-  const totals = usageTotals(user.id);
-  const cost = estimateCost(totals);
+  const wallet = walletSummary(user.id);
+  const models = listModels().filter((model) => model.status !== "retired");
+  const defaultModel = models.find((model) => model.slug === getDefaultModelSlug()) ?? models[0];
   const activity = all<ActivityRow>(
     "SELECT id, action, target, detail, created_at FROM audit_log WHERE actor_id = ? ORDER BY created_at DESC LIMIT 5",
     user.id,
+  );
+
+  const totals = usage.reduce(
+    (acc, row) => ({
+      requests: acc.requests + row.requests,
+      tokensIn: acc.tokensIn + row.tokens_in,
+      tokensOut: acc.tokensOut + row.tokens_out,
+      cost: acc.cost + row.cost_vnd,
+    }),
+    { requests: 0, tokensIn: 0, tokensOut: 0, cost: 0 },
   );
 
   const maxRequests = Math.max(1, ...usage.map((row) => row.requests));
@@ -74,6 +87,19 @@ export default async function DashboardPage() {
   const doneCount = steps.filter((step) => step.done).length;
   const progress = Math.round((doneCount / steps.length) * 100);
 
+  const modelCaps = defaultModel
+    ? [
+        parseInputTypes(defaultModel.input_types).includes("image") ? "Văn bản, ảnh" : "Văn bản",
+        parseReasoningEfforts(defaultModel.reasoning_efforts)
+          ? `${Object.keys(parseReasoningEfforts(defaultModel.reasoning_efforts) ?? {}).length} mức suy luận`
+          : null,
+        `${formatTokens(defaultModel.context_window)} ngữ cảnh`,
+        defaultModel.input_price <= 0 && defaultModel.output_price <= 0 ? "Miễn phí" : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -88,24 +114,64 @@ export default async function DashboardPage() {
             <Download className="size-3.5" />
             Tải app
           </ButtonLink>
-          <ButtonLink href="/dashboard/keys" variant="primary" size="sm">
-            <KeyRound className="size-3.5" />
-            Khoá API
+          <ButtonLink href="/dashboard/billing" variant="primary" size="sm">
+            <Wallet className="size-3.5" />
+            Nạp tiền
           </ButtonLink>
         </div>
       </div>
+
+      {/* Dải ví: số dư, chi tiêu 30 ngày, lệnh nạp đang chờ */}
+      <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <Link
+          href="/dashboard/billing"
+          className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-3 transition-colors hover:bg-surface-hover sm:block sm:px-5 sm:py-4"
+        >
+          <p className="text-xs text-muted">Số dư hiện tại</p>
+          <p
+            className={`text-xl font-semibold tracking-tight tabular-nums sm:mt-1 sm:text-2xl ${
+              wallet.balanceVnd <= 0 ? "text-danger" : ""
+            }`}
+          >
+            {formatVnd(wallet.balanceVnd)}
+          </p>
+          <p className="hidden text-[11px] text-muted sm:mt-0.5 sm:block">
+            {wallet.balanceVnd > 0 ? "Khả dụng cho model có giá" : "Nạp thêm để gọi model có giá"}
+          </p>
+        </Link>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-3 sm:block sm:px-5 sm:py-4">
+          <p className="text-xs text-muted">Đã dùng 30 ngày</p>
+          <p className="text-xl font-semibold tracking-tight tabular-nums sm:mt-1 sm:text-2xl">
+            {formatVnd(wallet.used30Vnd)}
+          </p>
+          <p className="hidden text-[11px] text-muted sm:mt-0.5 sm:block">trừ theo giá niêm yết</p>
+        </div>
+        <Link
+          href="/dashboard/billing"
+          className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-3 transition-colors hover:bg-surface-hover sm:block sm:px-5 sm:py-4"
+        >
+          <p className="text-xs text-muted">Đang chờ xác nhận</p>
+          <p className="flex items-center gap-2 text-xl font-semibold tracking-tight tabular-nums sm:mt-1 sm:text-2xl">
+            {formatVnd(wallet.pendingVnd)}
+            {wallet.pendingCount > 0 ? <Badge tone="warning">{wallet.pendingCount} lệnh</Badge> : null}
+          </p>
+          <p className="hidden text-[11px] text-muted sm:mt-0.5 sm:block">
+            {wallet.pendingCode ?? "chưa có lệnh nào"}
+          </p>
+        </Link>
+      </section>
 
       {/* Hàng số liệu: một khối chia kẻ, không phải bốn card */}
       <section className="grid grid-cols-2 divide-border overflow-hidden rounded-2xl border border-border bg-surface sm:grid-cols-4 sm:divide-x">
         {[
           { label: "Lượt gọi", value: formatNumber(totals.requests), sub: "14 ngày" },
-          { label: "Token vào", value: formatNumber(totals.tokens_in), sub: "tổng cộng" },
-          { label: "Token ra", value: formatNumber(totals.tokens_out), sub: "tổng cộng" },
-          { label: "Chi phí ước tính", value: formatCost(cost), sub: "theo giá niêm yết" },
+          { label: "Token vào", value: formatNumber(totals.tokensIn), sub: "tổng cộng" },
+          { label: "Token ra", value: formatNumber(totals.tokensOut), sub: "tổng cộng" },
+          { label: "Chi phí", value: formatVnd(totals.cost), sub: "đã trừ khỏi ví" },
         ].map((cell) => (
           <div key={cell.label} className="border-b border-border px-5 py-4 sm:border-b-0">
             <p className="text-xs text-muted">{cell.label}</p>
-            <p className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl">{cell.value}</p>
+            <p className="mt-1.5 text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">{cell.value}</p>
             <p className="mt-0.5 text-[11px] text-muted">{cell.sub}</p>
           </div>
         ))}
@@ -183,7 +249,43 @@ export default async function DashboardPage() {
             </ul>
           )}
         </section>
+      </div>
 
+      {/* Lối tắt model mặc định */}
+      <section className="rounded-2xl border border-border bg-surface p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary">
+              <Cpu className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium">{defaultModel?.name ?? "Chưa có model"}</p>
+                <Badge tone="brand">Mặc định</Badge>
+              </div>
+              <p className="mt-0.5 text-xs text-muted">{modelCaps || "Danh mục đang trống."}</p>
+              <p className="mt-1 text-[11px] text-muted">
+                {models.length} model đang phát hành.{" "}
+                {defaultModel && defaultModel.input_price > 0
+                  ? "Model có giá trừ tiền theo từng lượt gọi."
+                  : "Model mặc định hiện không trừ tiền."}
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <ButtonLink href="/dashboard/billing" variant="outline" size="sm">
+              <Wallet className="size-3.5" />
+              Nạp tiền
+            </ButtonLink>
+            <ButtonLink href="/dashboard/models" variant="primary" size="sm">
+              Xem model
+              <ArrowRight className="size-3.5" />
+            </ButtonLink>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-3 lg:grid-cols-3">
         {/* Các bước bắt đầu */}
         <section className="rounded-2xl border border-border bg-surface lg:col-span-2">
           <div className="border-b border-border px-5 py-4">
@@ -215,9 +317,7 @@ export default async function DashboardPage() {
                   <Circle className="mt-0.5 size-5 shrink-0 text-muted/40" strokeWidth={1.5} />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className={`text-sm ${step.done ? "text-muted line-through" : "font-medium"}`}>
-                    {step.title}
-                  </p>
+                  <p className={`text-sm ${step.done ? "text-muted" : "font-medium"}`}>{step.title}</p>
                   <p className="mt-0.5 text-xs leading-5 text-muted">{step.body}</p>
                   {!step.done && index === steps.findIndex((item) => !item.done) ? (
                     <Link

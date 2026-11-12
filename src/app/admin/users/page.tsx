@@ -1,30 +1,21 @@
 import { currentUser } from "@/lib/auth";
-import { all } from "@/lib/db";
-import { UsersClient, type AdminUser } from "./users-client";
-
-type Row = {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  plan: string;
-  status: string;
-  created_at: number;
-  last_login_at: number | null;
-  keys: number;
-};
+import { listAdminUsers } from "@/lib/admin";
+import { pendingTopups } from "@/lib/wallet";
+import { UsersClient, type AdminUser, type PendingTopup } from "./users-client";
 
 export default async function AdminUsersPage() {
   const admin = await currentUser();
   if (!admin) return null;
 
-  const rows = all<Row>(
-    `SELECT u.id, u.email, u.name, u.role, u.plan, u.status, u.created_at, u.last_login_at,
-            (SELECT COUNT(*) FROM api_keys k WHERE k.user_id = u.id AND k.revoked_at IS NULL) AS keys,
-            (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id) AS sessions
-       FROM users u
-      ORDER BY u.created_at DESC`,
-  );
+  const rows = listAdminUsers();
+  const pending: PendingTopup[] = pendingTopups().map((row) => ({
+    id: row.id,
+    code: row.code,
+    amountVnd: row.amount_vnd,
+    createdAt: row.created_at,
+    userName: row.user_name,
+    userEmail: row.user_email,
+  }));
 
   const users: AdminUser[] = rows.map((row) => ({
     id: row.id,
@@ -38,7 +29,10 @@ export default async function AdminUsersPage() {
       ? new Date(row.last_login_at).toLocaleString("vi-VN")
       : "Chưa đăng nhập",
     keys: row.keys,
+    balanceVnd: row.balance_vnd,
+    used30Vnd: row.used30,
+    pendingVnd: row.pending_vnd,
   }));
 
-  return <UsersClient initial={users} currentUserId={admin.id} />;
+  return <UsersClient initial={users} initialPending={pending} currentUserId={admin.id} />;
 }

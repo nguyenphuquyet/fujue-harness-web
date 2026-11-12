@@ -11,6 +11,7 @@ import {
   ScrollText,
   ShieldCheck,
   Users,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -21,6 +22,7 @@ const ICONS = {
   keys: KeyRound,
   sessions: Activity,
   devices: MonitorSmartphone,
+  wallet: Wallet,
   admin: ShieldCheck,
   users: Users,
   models: Cpu,
@@ -29,6 +31,8 @@ const ICONS = {
 
 const USER_NAV: NavItem[] = [
   { href: "/dashboard", label: "Tổng quan", icon: "overview" },
+  { href: "/dashboard/models", label: "Model", icon: "models" },
+  { href: "/dashboard/billing", label: "Nạp tiền", icon: "wallet" },
   { href: "/dashboard/keys", label: "Khoá API", icon: "keys" },
   { href: "/dashboard/sessions", label: "Phiên đăng nhập", icon: "sessions" },
   { href: "/device", label: "Kết nối thiết bị", icon: "devices" },

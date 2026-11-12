@@ -9,6 +9,7 @@ import {
   resolveGatewayRoute,
   splitUsage,
 } from "@/lib/gateway";
+import { walletBalance } from "@/lib/wallet";
 
 export const dynamic = "force-dynamic";
 /** Stream model trả lời có thể chạy lâu hơn một request thường. */
@@ -19,7 +20,14 @@ export const maxDuration = 300;
  * hiển thị nguyên văn thay vì nuốt mất lý do.
  */
 function apiError(status: number, message: string, code: string): NextResponse {
-  const type = status === 401 ? "authentication_error" : status >= 500 ? "api_error" : "invalid_request_error";
+  const type =
+    status === 401
+      ? "authentication_error"
+      : status === 402
+        ? "insufficient_quota"
+        : status >= 500
+          ? "api_error"
+          : "invalid_request_error";
   return NextResponse.json({ error: { message, type, code } }, { status });
 }
 
@@ -117,6 +125,15 @@ export async function POST(request: Request): Promise<Response> {
     return apiError(route.status, route.message, route.code);
   }
 
+  // Model có giá chỉ gọi được khi ví còn tiền; model miễn phí bỏ qua bước này.
+  if (!route.free && walletBalance(owner.userId) <= 0) {
+    return apiError(
+      402,
+      "Số dư ví đã hết. Nạp thêm tại trang Nạp tiền để tiếp tục gọi model này.",
+      "insufficient_balance",
+    );
+  }
+
   let upstream: Response;
   try {
     upstream = await fetch(`${route.baseUrl}/chat/completions`, {
@@ -146,8 +163,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // Lượt gọi chỉ được tính khi nguồn thực sự nhận việc; lời gọi hỏng không làm
-  // giảm hạn mức của người dùng.
-  recordUsage(owner.userId, { requests: 1 });
+  // giảm hạn mức hay trừ tiền của người dùng.
+  recordUsage(owner.userId, route, { requests: 1 });
 
   if (!streaming) {
     const text = await upstream.text();
@@ -159,13 +176,13 @@ export async function POST(request: Request): Promise<Response> {
     } catch {
       // Phản hồi không phải JSON: vẫn trả nguyên văn, chỉ không ghi được token.
     }
-    if (tokensIn > 0 || tokensOut > 0) recordUsage(owner.userId, { tokensIn, tokensOut });
+    if (tokensIn > 0 || tokensOut > 0) recordUsage(owner.userId, route, { tokensIn, tokensOut });
     return new Response(text, { status: upstream.status, headers });
   }
 
   return new Response(
     upstream.body.pipeThrough(
-      usageMeter((tokensIn, tokensOut) => recordUsage(owner.userId, { tokensIn, tokensOut })),
+      usageMeter((tokensIn, tokensOut) => recordUsage(owner.userId, route, { tokensIn, tokensOut })),
     ),
     { status: upstream.status, headers },
   );
