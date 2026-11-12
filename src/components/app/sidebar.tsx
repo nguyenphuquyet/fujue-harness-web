@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
-  ChartColumn,
   Cpu,
   KeyRound,
   LayoutDashboard,
@@ -21,7 +20,6 @@ export type NavItem = { href: string; label: string; icon: keyof typeof ICONS };
 
 const ICONS = {
   overview: LayoutDashboard,
-  usage: ChartColumn,
   keys: KeyRound,
   sessions: Activity,
   devices: MonitorSmartphone,
@@ -35,7 +33,6 @@ const ICONS = {
 
 const USER_NAV: NavItem[] = [
   { href: "/dashboard", label: "Tổng quan", icon: "overview" },
-  { href: "/dashboard/usage", label: "Mức sử dụng", icon: "usage" },
   { href: "/dashboard/models", label: "Model", icon: "models" },
   { href: "/dashboard/billing", label: "Nạp tiền", icon: "wallet" },
   { href: "/dashboard/keys", label: "Khoá API", icon: "keys" },

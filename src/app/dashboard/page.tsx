@@ -24,7 +24,6 @@ import { formatNumber, formatRelative, formatTokens, formatVnd, usageLastDays } 
 import { walletSummary } from "@/lib/wallet";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { DashboardTabs } from "@/components/app/dashboard-tabs";
 
 type ActivityRow = {
   id: string;
@@ -103,7 +102,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <DashboardTabs />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Tổng quan</h1>

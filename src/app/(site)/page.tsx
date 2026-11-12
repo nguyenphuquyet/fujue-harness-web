@@ -109,7 +109,7 @@ const FAQ = [
   },
   {
     q: "Chi phí gọi model tính thế nào?",
-    a: "Model miễn phí gọi không trừ tiền. Model có giá trừ vào ví trả trước theo đúng lượng token nguồn báo về, giá niêm yết theo 1 triệu token; nạp thêm ví bất cứ lúc nào trong bảng điều khiển và xem lại từng lượt trừ ở tab Mức sử dụng.",
+    a: "Model miễn phí gọi không trừ tiền. Model có giá trừ vào ví trả trước theo đúng lượng token nguồn báo về, giá niêm yết theo 1 triệu token; nạp thêm ví bất cứ lúc nào trong bảng điều khiển.",
   },
   {
     q: "Dữ liệu phiên của tôi nằm ở đâu?",
