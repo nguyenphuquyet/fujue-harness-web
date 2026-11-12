@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   MonitorSmartphone,
   ScrollText,
+  Settings,
   ShieldCheck,
   Users,
   Wallet,
@@ -26,6 +27,7 @@ const ICONS = {
   admin: ShieldCheck,
   users: Users,
   models: Cpu,
+  settings: Settings,
   logs: ScrollText,
 };
 
@@ -42,6 +44,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Tổng quan quản trị", icon: "admin" },
   { href: "/admin/users", label: "Người dùng", icon: "users" },
   { href: "/admin/models", label: "Model", icon: "models" },
+  { href: "/admin/settings", label: "Cài đặt", icon: "settings" },
   { href: "/admin/logs", label: "Nhật ký", icon: "logs" },
 ];
 

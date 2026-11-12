@@ -12,6 +12,13 @@ export const TOPUP_DENOMINATIONS = [50_000, 100_000, 200_000, 500_000] as const;
 /** Lệnh nạp hết hạn sau 15 phút, khớp ghi chú trên mã QR. */
 export const TOPUP_TTL_MS = 15 * 60 * 1000;
 
+/** Tỷ giá mặc định khi chưa cấu hình ở trang quản trị lẫn biến môi trường. */
+export const DEFAULT_VND_PER_USD = 26_500;
+
+/** Khoảng tỷ giá quản trị viên được đặt, đủ rộng nhưng chặn lỗi gõ nhầm. */
+export const MIN_VND_PER_USD = 10_000;
+export const MAX_VND_PER_USD = 100_000;
+
 export type BankInfo = {
   /** Mã BIN ngân hàng, dùng cho ảnh VietQR. */
   bin: string;
@@ -44,6 +51,19 @@ export const TOPUP_STATUS_LABELS: Record<string, string> = {
   paid: "Đã cộng",
   rejected: "Từ chối",
   expired: "Hết hạn",
+};
+
+/**
+ * Cấu hình ví đang dùng, trả về cho trang quản trị. Nằm ở đây để component phía
+ * client dùng được kiểu này mà không kéo `node:sqlite` vào bundle.
+ */
+export type WalletConfigView = {
+  /** `null` khi chưa đủ thông tin nhận tiền. */
+  bank: BankInfo | null;
+  vndPerUsd: number;
+  /** Nguồn của thông tin nhận tiền, để trang quản trị báo đúng trạng thái. */
+  bankSource: "settings" | "env" | "none";
+  rateSource: "settings" | "env" | "default";
 };
 
 export { formatVnd } from "./format";

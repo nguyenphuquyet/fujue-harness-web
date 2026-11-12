@@ -58,7 +58,15 @@ function InputChips({ types }: { types: InputModality[] }) {
   );
 }
 
-export function ModelsClient({ models, balanceVnd }: { models: ModelCard[]; balanceVnd: number }) {
+export function ModelsClient({
+  models,
+  balanceVnd,
+  vndPerUsd,
+}: {
+  models: ModelCard[];
+  balanceVnd: number;
+  vndPerUsd: number;
+}) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
 
@@ -301,7 +309,7 @@ export function ModelsClient({ models, balanceVnd }: { models: ModelCard[]; bala
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div className="rounded-xl bg-surface-subtle px-3.5 py-3">
               <dt className="text-xs text-muted">Tỷ giá quy đổi</dt>
-              <dd className="mt-0.5 font-medium tabular-nums">1 USD = 26.500 ₫</dd>
+              <dd className="mt-0.5 font-medium tabular-nums">1 USD = {formatVnd(vndPerUsd)}</dd>
             </div>
             <div className="rounded-xl bg-surface-subtle px-3.5 py-3">
               <dt className="text-xs text-muted">Khi ví hết tiền</dt>

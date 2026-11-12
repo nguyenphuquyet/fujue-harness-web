@@ -54,6 +54,7 @@ khoản quản trị lấy từ `FUJUE_ADMIN_EMAIL` và `FUJUE_ADMIN_PASSWORD`, 
 | `/dashboard/sessions` | Các phiên đăng nhập của tài khoản |
 | `/admin` | Tổng quan quản trị, nhật ký gần đây |
 | `/admin/users` | Số dư, mức dùng, xác nhận lệnh nạp, đổi gói/vai trò, tạm khoá |
+| `/admin/settings` | Tài khoản nhận tiền VietQR và tỷ giá quy đổi |
 | `/admin/models` | Nguồn model + danh mục model |
 | `/admin/logs` | Nhật ký thao tác |
 
@@ -151,13 +152,16 @@ Ví tính bằng đồng, không có cổng thanh toán. Người dùng tạo l�
 VietQR để chuyển khoản, quản trị viên đối chiếu sao kê rồi bấm **Đã nhận tiền** ở `/admin/users`.
 
 - Giá model là USD/1 triệu token; mỗi lượt quy đổi sang đồng, làm tròn lên tới đồng. Tỷ giá đổi
-  bằng `FUJUE_VND_PER_USD` (mặc định `26500`).
+  đặt ở `/admin/settings` (mặc định `26500`).
 - Mệnh giá gợi ý 50.000 / 100.000 / 200.000 / 500.000 ₫, hoặc nhập tay từ 20.000 ₫ đến 50.000.000 ₫
   (bội số 1.000 ₫). Mỗi tài khoản chỉ có một lệnh chờ; tạo lệnh mới sẽ huỷ lệnh cũ.
 - Lệnh hết hạn sau 15 phút. Xác nhận cộng đúng số tiền vào ví trong cùng transaction với cập nhật
   lệnh; từ chối chỉ đổi trạng thái, không cộng tiền.
 - Sổ `wallet_ledger` ghi mọi thay đổi: nạp tiền, trừ tiền theo lượt gọi, quản trị viên điều chỉnh tay.
-- Thiếu cấu hình nhận tiền thì nút tạo lệnh tắt và trang báo rõ. Đặt trong `deploy/ecosystem.local.cjs`:
+- Tài khoản nhận tiền và tỷ giá sửa ở `/admin/settings`, lưu vào bảng `settings` nên áp dụng ngay.
+  Thiếu thông tin thì nút tạo lệnh tắt và trang báo rõ.
+
+Biến môi trường chỉ còn là giá trị dự phòng khi bảng `settings` chưa có gì, tiện cho lần dựng đầu:
 
 ```js
 module.exports = {

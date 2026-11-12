@@ -1,7 +1,16 @@
 import { randomInt } from "node:crypto";
-import { all, logAudit, newId, now, one, run, transaction } from "./db";
+import { all, getSetting, logAudit, newId, now, one, run, setSetting, transaction } from "./db";
 import { ApiError } from "./errors";
-import { MAX_TOPUP_VND, MIN_TOPUP_VND, TOPUP_TTL_MS, type BankInfo } from "./billing";
+import {
+  DEFAULT_VND_PER_USD,
+  MAX_TOPUP_VND,
+  MAX_VND_PER_USD,
+  MIN_TOPUP_VND,
+  MIN_VND_PER_USD,
+  TOPUP_TTL_MS,
+  type BankInfo,
+  type WalletConfigView,
+} from "./billing";
 import { formatVnd } from "./format";
 
 /**
@@ -9,11 +18,27 @@ import { formatVnd } from "./format";
  * để đối chiếu được với sao kê ngân hàng và số liệu sử dụng.
  */
 
-/** Tỷ giá quy đổi giá niêm yết USD sang đồng; đổi bằng FUJUE_VND_PER_USD. */
-export const VND_PER_USD: number = (() => {
-  const raw = Number(process.env.FUJUE_VND_PER_USD);
-  return Number.isFinite(raw) && raw > 0 ? raw : 26_500;
-})();
+/** Khoá trong bảng `settings` cho cấu hình nhận tiền, sửa ở `/admin/settings`. */
+export const WALLET_SETTING_KEYS = {
+  bin: "wallet.bank_bin",
+  bankName: "wallet.bank_name",
+  account: "wallet.bank_account",
+  accountName: "wallet.bank_account_name",
+  vndPerUsd: "wallet.vnd_per_usd",
+} as const;
+
+function readSetting(key: string): string {
+  return (getSetting(key) ?? "").trim();
+}
+
+/**
+ * Tỷ giá quy đổi USD sang đồng. Quản trị viên đổi ở trang Cài đặt; biến môi
+ * trường `FUJUE_VND_PER_USD` chỉ còn là giá trị dự phòng khi chưa đặt trong DB.
+ */
+export function vndPerUsd(): number {
+  const raw = Number(readSetting(WALLET_SETTING_KEYS.vndPerUsd) || process.env.FUJUE_VND_PER_USD);
+  return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : DEFAULT_VND_PER_USD;
+}
 
 /**
  * Tiền phải trả cho một lượt gọi, làm tròn lên tới đồng để không có lượt nào
@@ -22,7 +47,7 @@ export const VND_PER_USD: number = (() => {
 export function usageCostVnd(inputPrice: number, outputPrice: number, tokensIn: number, tokensOut: number): number {
   const usd = (tokensIn / 1_000_000) * inputPrice + (tokensOut / 1_000_000) * outputPrice;
   if (!Number.isFinite(usd) || usd <= 0) return 0;
-  return Math.ceil(usd * VND_PER_USD);
+  return Math.ceil(usd * vndPerUsd());
 }
 
 export function walletBalance(userId: string): number {
@@ -282,16 +307,101 @@ export function walletSummary(userId: string): WalletSummary {
   };
 }
 
-/** Cấu hình nhận tiền lấy từ biến môi trường; thiếu thì trang nạp tiền tạm tắt. */
+/**
+ * Cấu hình nhận tiền: ưu tiên giá trị lưu trong bảng `settings` (sửa ở
+ * `/admin/settings`), sau đó mới tới biến môi trường. Thiếu cả hai thì trang
+ * nạp tiền tạm tắt thay vì tạo mã QR không chuyển được.
+ */
 export function bankInfo(): BankInfo | null {
-  const bin = (process.env.FUJUE_BANK_BIN ?? "").trim();
-  const account = (process.env.FUJUE_BANK_ACCOUNT ?? "").trim();
-  const accountName = (process.env.FUJUE_BANK_ACCOUNT_NAME ?? "").trim();
+  const bin = readSetting(WALLET_SETTING_KEYS.bin) || (process.env.FUJUE_BANK_BIN ?? "").trim();
+  const account =
+    readSetting(WALLET_SETTING_KEYS.account) || (process.env.FUJUE_BANK_ACCOUNT ?? "").trim();
+  const accountName =
+    readSetting(WALLET_SETTING_KEYS.accountName) || (process.env.FUJUE_BANK_ACCOUNT_NAME ?? "").trim();
   if (!bin || !account || !accountName) return null;
+  const name =
+    readSetting(WALLET_SETTING_KEYS.bankName) || (process.env.FUJUE_BANK_NAME ?? "").trim();
+  return { bin, name: name || `Ngân hàng ${bin}`, account, accountName };
+}
+
+export type WalletConfig = WalletConfigView;
+
+/** Toàn bộ cấu hình ví cho trang quản trị: giá trị đang dùng và nó đến từ đâu. */
+export function walletConfig(): WalletConfig {
+  const storedBank = [
+    WALLET_SETTING_KEYS.bin,
+    WALLET_SETTING_KEYS.account,
+    WALLET_SETTING_KEYS.accountName,
+  ].some((key) => readSetting(key) !== "");
+  const envBank = ["FUJUE_BANK_BIN", "FUJUE_BANK_ACCOUNT", "FUJUE_BANK_ACCOUNT_NAME"].some(
+    (key) => (process.env[key] ?? "").trim() !== "",
+  );
+  const storedRate = readSetting(WALLET_SETTING_KEYS.vndPerUsd) !== "";
+  const envRate = (process.env.FUJUE_VND_PER_USD ?? "").trim() !== "";
   return {
-    bin,
-    name: (process.env.FUJUE_BANK_NAME ?? "").trim() || `Ngân hàng ${bin}`,
-    account,
-    accountName,
+    bank: bankInfo(),
+    vndPerUsd: vndPerUsd(),
+    bankSource: storedBank ? "settings" : envBank ? "env" : "none",
+    rateSource: storedRate ? "settings" : envRate ? "env" : "default",
   };
+}
+
+export type WalletSettingsInput = {
+  bin: string;
+  bankName: string;
+  account: string;
+  accountName: string;
+  vndPerUsd: number;
+};
+
+/**
+ * Lưu cấu hình nhận tiền và tỷ giá. Ghi vào `settings` nên áp dụng ngay cho lệnh
+ * nạp kế tiếp, không cần khởi động lại server.
+ */
+export function saveWalletSettings(
+  input: WalletSettingsInput,
+  admin: { id: string; email: string },
+): WalletConfig {
+  const bin = input.bin.trim();
+  const bankName = input.bankName.trim();
+  const account = input.account.trim().replace(/\s+/g, "");
+  const accountName = input.accountName.trim().replace(/\s+/g, " ").toUpperCase();
+  const rate = Math.round(Number(input.vndPerUsd));
+
+  if (!/^\d{6}$/.test(bin)) {
+    throw new ApiError(422, "Mã BIN ngân hàng gồm đúng 6 chữ số.", "bin");
+  }
+  if (!/^\d{6,19}$/.test(account)) {
+    throw new ApiError(422, "Số tài khoản gồm 6 đến 19 chữ số.", "account");
+  }
+  if (accountName.length < 3 || accountName.length > 60 || !/^[A-Z0-9 ]+$/.test(accountName)) {
+    throw new ApiError(422, "Tên chủ tài khoản viết hoa không dấu, 3–60 ký tự.", "accountName");
+  }
+  if (bankName.length > 60) {
+    throw new ApiError(422, "Tên ngân hàng tối đa 60 ký tự.", "bankName");
+  }
+  if (!Number.isFinite(rate) || rate < MIN_VND_PER_USD || rate > MAX_VND_PER_USD) {
+    throw new ApiError(
+      422,
+      `Tỷ giá từ ${MIN_VND_PER_USD.toLocaleString("vi-VN")} đến ${MAX_VND_PER_USD.toLocaleString("vi-VN")} ₫/USD.`,
+      "vndPerUsd",
+    );
+  }
+
+  transaction(() => {
+    setSetting(WALLET_SETTING_KEYS.bin, bin);
+    setSetting(WALLET_SETTING_KEYS.bankName, bankName);
+    setSetting(WALLET_SETTING_KEYS.account, account);
+    setSetting(WALLET_SETTING_KEYS.accountName, accountName);
+    setSetting(WALLET_SETTING_KEYS.vndPerUsd, String(rate));
+    logAudit({
+      actorId: admin.id,
+      actorEmail: admin.email,
+      action: "Cập nhật cấu hình ví",
+      target: `${bankName || bin} · ${account}`,
+      detail: `${accountName} · 1 USD = ${rate.toLocaleString("vi-VN")} ₫`,
+    });
+  });
+
+  return walletConfig();
 }

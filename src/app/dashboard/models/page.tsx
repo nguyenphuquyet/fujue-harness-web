@@ -1,7 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { getDefaultModelSlug, listModels, parseInputTypes, parseReasoningEfforts } from "@/lib/models";
 import { usageByModel } from "@/lib/usage";
-import { walletSummary } from "@/lib/wallet";
+import { walletSummary, vndPerUsd } from "@/lib/wallet";
 import { ModelsClient, type ModelCard } from "./models-client";
 
 export default async function DashboardModelsPage() {
@@ -35,5 +35,5 @@ export default async function DashboardModelsPage() {
       };
     });
 
-  return <ModelsClient models={models} balanceVnd={wallet.balanceVnd} />;
+  return <ModelsClient models={models} balanceVnd={wallet.balanceVnd} vndPerUsd={vndPerUsd()} />;
 }

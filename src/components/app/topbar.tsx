@@ -18,6 +18,7 @@ const TITLES: Record<string, string> = {
   "/admin": "Quản trị",
   "/admin/users": "Người dùng",
   "/admin/models": "Model",
+  "/admin/settings": "Cài đặt",
   "/admin/logs": "Nhật ký",
 };
 
