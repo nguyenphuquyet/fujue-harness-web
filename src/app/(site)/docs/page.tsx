@@ -447,8 +447,8 @@ export function apply(ctx) {
             ngày làm việc.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <ButtonLink href="/pricing" variant="outline" size="sm">
-              Xem bảng giá
+            <ButtonLink href="/models" variant="outline" size="sm">
+              Xem danh mục model
             </ButtonLink>
             <ButtonLink href="/downloads" variant="outline" size="sm">
               Tải app

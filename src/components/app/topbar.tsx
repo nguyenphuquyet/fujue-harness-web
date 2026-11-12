@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 
 const TITLES: Record<string, string> = {
   "/dashboard": "Tổng quan",
+  "/dashboard/usage": "Mức sử dụng",
   "/dashboard/models": "Model",
   "/dashboard/billing": "Nạp tiền",
   "/dashboard/keys": "Khoá API",

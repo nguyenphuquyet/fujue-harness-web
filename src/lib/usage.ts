@@ -18,6 +18,50 @@ export function usageLastDays(userId: string, days = 14): UsageRow[] {
   return rows.reverse();
 }
 
+/** Đủ N ngày liên tiếp, ngày chưa có lượt gọi điền bằng 0 để trục biểu đồ không đứt quãng. */
+export function usageDailyRange(userId: string, days = 14): UsageRow[] {
+  const since = new Date(Date.now() - (days - 1) * 86_400_000).toISOString().slice(0, 10);
+  const rows = all<UsageRow>(
+    `SELECT day, requests, tokens_in, tokens_out, cost_vnd
+       FROM usage_daily WHERE user_id = ? AND day >= ?`,
+    userId,
+    since,
+  );
+  const byDay = new Map(rows.map((row) => [row.day, row]));
+  const out: UsageRow[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+    const row = byDay.get(day);
+    // Row của node:sqlite có null prototype, không serialize được sang client component.
+    out.push(
+      row
+        ? {
+            day: row.day,
+            requests: row.requests,
+            tokens_in: row.tokens_in,
+            tokens_out: row.tokens_out,
+            cost_vnd: row.cost_vnd,
+          }
+        : { day, requests: 0, tokens_in: 0, tokens_out: 0, cost_vnd: 0 },
+    );
+  }
+  return out;
+}
+
+export type UsageTotals = { requests: number; tokensIn: number; tokensOut: number; cost: number };
+
+export function sumUsage(rows: UsageRow[]): UsageTotals {
+  return rows.reduce(
+    (acc, row) => ({
+      requests: acc.requests + row.requests,
+      tokensIn: acc.tokensIn + row.tokens_in,
+      tokensOut: acc.tokensOut + row.tokens_out,
+      cost: acc.cost + row.cost_vnd,
+    }),
+    { requests: 0, tokensIn: 0, tokensOut: 0, cost: 0 },
+  );
+}
+
 export function usageTotals(userId: string): UsageRow {
   const row = one<UsageRow>(
     `SELECT COALESCE(SUM(requests), 0) AS requests,

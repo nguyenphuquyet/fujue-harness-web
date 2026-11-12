@@ -40,6 +40,8 @@
 
   --elevation-popover: 0 10px 15px -3px rgb(16 24 40 / 0.08), 0 4px 6px -4px rgb(16 24 40 / 0.06);
   --elevation-modal: 0 20px 25px -5px rgb(16 24 40 / 0.12), 0 8px 10px -6px rgb(16 24 40 / 0.08);
+  --elevation-segment-track: inset 0 0 0 1px rgb(12 15 23 / 0.05), inset 0 1px 2px rgb(12 15 23 / 0.04);
+  --elevation-segment-thumb: 0 0 0 1px rgb(12 15 23 / 0.04), 0 1px 2px rgb(12 15 23 / 0.06), 0 2px 6px -2px rgb(12 15 23 / 0.08);
 
   --chart-fill: color-mix(in srgb, var(--primary) 82%, transparent);
 
@@ -108,6 +110,8 @@
 
   --shadow-popover: var(--elevation-popover);
   --shadow-modal: var(--elevation-modal);
+  --shadow-segment-track: var(--elevation-segment-track);
+  --shadow-segment-thumb: var(--elevation-segment-thumb);
 }
 
 .bg-surface *,
@@ -271,9 +275,100 @@ body {
   animation: fj-rise 0.5s ease-out both;
 }
 
+/* ============================================================
+   Landing page: nền layered, entrance theo tầng, reveal khi cuộn.
+   Chỉ dùng cho trang trình diễn, không dùng cho màn trong app.
+   ============================================================ */
+
+.landing-aurora {
+  background:
+    radial-gradient(52rem 30rem at 12% -8rem, rgb(61 92 245 / 0.2), transparent 68%),
+    radial-gradient(40rem 26rem at 86% -4rem, rgb(124 58 237 / 0.14), transparent 70%),
+    radial-gradient(34rem 24rem at 55% 12rem, rgb(14 165 233 / 0.1), transparent 72%);
+  animation: fj-aurora 18s ease-in-out infinite;
+}
+
+@keyframes fj-aurora {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, -2%, 0) scale(1.05);
+  }
+}
+
+.landing-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+}
+
+.ink-gradient {
+  background: linear-gradient(92deg, #3d5cf5 0%, #7c3aed 48%, #0284c7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+.stagger > * {
+  animation: fj-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger > *:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 0.25s;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 0.35s;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 0.45s;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 0.55s;
+}
+
+@keyframes fj-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+.fj-drift {
+  animation: fj-drift 7s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fj-pulse,
-  .fj-rise {
+  .fj-rise,
+  .landing-aurora,
+  .fj-drift,
+  .stagger > * {
     animation: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

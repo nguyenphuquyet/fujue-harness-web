@@ -9,7 +9,6 @@ const COLUMNS = [
     links: [
       { href: "/downloads", label: "Tải app desktop" },
       { href: "/models", label: "Danh mục model" },
-      { href: "/pricing", label: "Bảng giá" },
       { href: "/#tinh-nang", label: "Tính năng" },
       { href: "/dashboard", label: "Bảng điều khiển" },
     ],

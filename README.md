@@ -44,7 +44,6 @@ khoản quản trị lấy từ `FUJUE_ADMIN_EMAIL` và `FUJUE_ADMIN_PASSWORD`, 
 | `/models` | Danh mục model công khai (giá, ngữ cảnh, tốc độ, trạng thái) |
 | `/downloads` | Bản tải cho macOS/Windows/Linux, kiểm tra SHA-256 |
 | `/docs` | Cài đặt, dòng lệnh, tham chiếu API, luồng thiết bị, viết plugin |
-| `/pricing` | Ba gói Miễn phí / Pro / Đội nhóm |
 | `/login`, `/register` | Đăng nhập, tạo tài khoản |
 | `/device` | Duyệt mã thiết bị do app desktop yêu cầu |
 | `/dashboard` | Tổng quan, ví, hạn mức, khoá API, phiên |

@@ -2,39 +2,68 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Download, Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 const NAV = [
-  { href: "/#tinh-nang", label: "Tính năng" },
-  { href: "/models", label: "Model" },
-  { href: "/downloads", label: "Tải về" },
-  { href: "/docs", label: "Hướng dẫn" },
-  { href: "/pricing", label: "Bảng giá" },
+  { href: "/#tinh-nang", label: "Tính năng", section: "tinh-nang" },
+  { href: "/#tai-ve", label: "Cách hoạt động", section: "tai-ve" },
+  { href: "/models", label: "Model", section: null },
+  { href: "/#api", label: "API", section: "api" },
+  { href: "/docs", label: "Hướng dẫn", section: null },
 ];
 
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [section, setSection] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
   const pathname = usePathname();
+  const onHome = pathname === "/";
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+      if (!onHome) return;
+      const doc = document.documentElement;
+      const max = doc.scrollHeight - window.innerHeight;
+      setProgress(max > 0 ? Math.min(1, window.scrollY / max) : 0);
+      let current: string | null = null;
+      for (const item of NAV) {
+        if (!item.section) continue;
+        const el = document.getElementById(item.section);
+        if (el && el.getBoundingClientRect().top <= 120) current = item.section;
+      }
+      setSection(current);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [onHome]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/85 backdrop-blur-xl">
+    <header
+      className={cn(
+        "sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-300",
+        scrolled ? "border-border bg-background/90" : "border-transparent bg-background/60",
+      )}
+    >
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
         <Logo />
 
-        <nav className="hidden flex-1 items-center gap-1 md:flex" aria-label="Điều hướng chính">
+        <nav className="hidden flex-1 items-center gap-1 lg:flex" aria-label="Điều hướng chính">
           {NAV.map((item) => {
-            const active =
-              item.href === "/#tinh-nang"
-                ? pathname === "/"
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = item.section
+              ? onHome && section === item.section
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm transition-colors",
                   active
@@ -48,7 +77,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
           })}
         </nav>
 
-        <div className="ml-auto hidden items-center gap-2 md:flex">
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
           {signedIn ? (
             <ButtonLink href="/dashboard" variant="primary" size="sm" className="h-9 px-4">
               Bảng điều khiển
@@ -70,7 +99,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="ml-auto inline-flex size-9 items-center justify-center rounded-lg border border-border-strong bg-surface text-muted transition-colors hover:text-foreground md:hidden"
+          className="ml-auto inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-border-strong bg-surface text-muted transition-colors hover:text-foreground lg:hidden"
           aria-label={open ? "Đóng menu" : "Mở menu"}
           aria-expanded={open}
         >
@@ -78,8 +107,16 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
         </button>
       </div>
 
+      {onHome ? (
+        <div
+          aria-hidden
+          className="ink-gradient absolute bottom-0 left-0 h-0.5 transition-[width] duration-150"
+          style={{ width: `${progress * 100}%` }}
+        />
+      ) : null}
+
       {open ? (
-        <div className="border-t border-border bg-background px-4 pb-5 pt-2 md:hidden">
+        <div className="border-t border-border bg-background px-4 pb-5 pt-2 lg:hidden">
           <nav className="flex flex-col" aria-label="Điều hướng trên điện thoại">
             {NAV.map((item) => (
               <Link
